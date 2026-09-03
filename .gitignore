@@ -111,3 +111,6 @@ tmp/
 .DS_Store?
 Thumbs.db
 Desktop.ini
+
+# Terraform backend configuration generated locally
+terraform/environments/*/backend.hcl
