@@ -39,7 +39,7 @@ resource "aws_lb_listener" "http" {
 
 locals {
   path_services = {
-    ticket        = ["/tickets*", "/tickets/*", "/api/tickets*", "/api/tickets/*"]
+    ticket       = ["/tickets*", "/tickets/*", "/api/tickets*", "/api/tickets/*"]
     registration = ["/registrations*", "/registrations/*", "/api/registrations*", "/api/registrations/*"]
     payment      = ["/payments*", "/payments/*", "/api/payments*", "/api/payments/*"]
     notification = ["/notifications*", "/notifications/*", "/api/notifications*", "/api/notifications/*"]

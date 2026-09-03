@@ -48,8 +48,8 @@ module "ecs" {
   subnet_ids        = module.vpc.public_subnet_ids
   security_group_id = module.vpc.ecs_security_group_id
   service_repos     = module.ecr.repository_urls
-  services           = local.services
-  target_group_arns   = module.alb.target_group_arns
+  services          = local.services
+  target_group_arns = module.alb.target_group_arns
 }
 
 module "iam" {

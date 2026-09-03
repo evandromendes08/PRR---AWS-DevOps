@@ -1,16 +1,37 @@
 services:
-  event-service:
-    build: ./services/event-service
-    ports: ["3001:3000"]
-  ticket-service:
-    build: ./services/ticket-service
-    ports: ["3002:3000"]
-  registration-service:
-    build: ./services/registration-service
-    ports: ["3003:3000"]
-  payment-service:
-    build: ./services/payment-service
-    ports: ["3004:3000"]
-  notification-service:
-    build: ./services/notification-service
-    ports: ["3005:3000"]
+  toolbox:
+    build:
+      context: .
+      dockerfile: devops/Dockerfile
+      args:
+        TERRAFORM_VERSION: "1.13.5"
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - ~/.aws:/root/.aws
+      - ~/.ssh:/root/.ssh:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      AWS_PAGER: ""
+      TF_IN_AUTOMATION: "false"
+    stdin_open: true
+    tty: true
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: events
+      POSTGRES_USER: events
+      POSTGRES_PASSWORD: events_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U events -d events"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

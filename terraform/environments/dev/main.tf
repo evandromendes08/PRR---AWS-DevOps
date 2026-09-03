@@ -34,11 +34,11 @@ module "database" {
 module "alb" {
   source = "../../modules/alb"
 
-  project_name           = var.project_name
-  vpc_id                 = module.vpc.vpc_id
-  public_subnet_ids      = module.vpc.public_subnet_ids
-  alb_security_group_id  = module.vpc.alb_security_group_id
-  services               = local.services
+  project_name          = var.project_name
+  vpc_id                = module.vpc.vpc_id
+  public_subnet_ids     = module.vpc.public_subnet_ids
+  alb_security_group_id = module.vpc.alb_security_group_id
+  services              = local.services
 }
 
 module "ecs" {
@@ -49,13 +49,13 @@ module "ecs" {
   security_group_id = module.vpc.ecs_security_group_id
   service_repos     = module.ecr.repository_urls
   services          = local.services
-  target_group_arns  = module.alb.target_group_arns
+  target_group_arns = module.alb.target_group_arns
 }
 
 module "iam" {
   source = "../../modules/iam"
 
-  project_name     = var.project_name
+  project_name      = var.project_name
   github_repository = "evandromendes08/PRR---AWS-DevOps"
 }
 
