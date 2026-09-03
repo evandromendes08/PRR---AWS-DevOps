@@ -1,32 +1,32 @@
+locals {
+  resource_prefix = "${var.project_name}-${var.environment}"
+}
+
 module "vpc" {
   source = "../../modules/vpc"
-
-  name = "${var.project_name}-${var.environment}"
+  name   = local.resource_prefix
 }
 
 module "ecr" {
-  source = "../../modules/ecr"
-
-  project_name = var.project_name
+  source       = "../../modules/ecr"
+  project_name = local.resource_prefix
   services     = local.services
 }
 
 module "cognito" {
-  source = "../../modules/cognito"
-
-  project_name = var.project_name
+  source       = "../../modules/cognito"
+  project_name = local.resource_prefix
 }
 
 module "messaging" {
-  source = "../../modules/messaging"
-
-  project_name = var.project_name
+  source       = "../../modules/messaging"
+  project_name = local.resource_prefix
 }
 
 module "database" {
   source = "../../modules/rds"
 
-  project_name      = var.project_name
+  project_name      = local.resource_prefix
   subnet_ids        = module.vpc.private_subnet_ids
   security_group_id = module.vpc.database_security_group_id
 }
@@ -34,7 +34,7 @@ module "database" {
 module "alb" {
   source = "../../modules/alb"
 
-  project_name          = var.project_name
+  project_name          = local.resource_prefix
   vpc_id                = module.vpc.vpc_id
   public_subnet_ids     = module.vpc.public_subnet_ids
   alb_security_group_id = module.vpc.alb_security_group_id
@@ -44,14 +44,17 @@ module "alb" {
 module "ecs" {
   source = "../../modules/ecs"
 
-  project_name      = var.project_name
+  project_name      = local.resource_prefix
   subnet_ids        = module.vpc.public_subnet_ids
   security_group_id = module.vpc.ecs_security_group_id
   service_repos     = module.ecr.repository_urls
   services          = local.services
   target_group_arns = module.alb.target_group_arns
+  desired_count     = var.ecs_desired_count
+  image_tag         = var.ecs_image_tag
 }
 
+# GitHub OIDC is account-wide and is managed once from the dev environment.
 module "iam" {
   source = "../../modules/iam"
 
@@ -62,7 +65,7 @@ module "iam" {
 module "frontend" {
   source = "../../modules/frontend"
 
-  project_name = var.project_name
+  project_name = local.resource_prefix
   alb_dns_name = module.alb.dns_name
 }
 

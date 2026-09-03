@@ -29,7 +29,50 @@ resource "aws_iam_role" "github_actions" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "github_admin" {
-  role       = aws_iam_role.github_actions.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+resource "aws_iam_role_policy" "github_deployment" {
+  name = "${var.project_name}-github-deployment"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid    = "ProjectInfrastructureDeployment"
+      Effect = "Allow"
+      Action = [
+        "ec2:*",
+        "elasticloadbalancing:*",
+        "ecs:*",
+        "ecr:*",
+        "rds:*",
+        "s3:*",
+        "cloudfront:*",
+        "cognito-idp:*",
+        "sqs:*",
+        "events:*",
+        "logs:*",
+        "secretsmanager:*",
+        "iam:GetRole",
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:PassRole",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRolePolicies",
+        "iam:GetRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:CreateOpenIDConnectProvider",
+        "iam:DeleteOpenIDConnectProvider",
+        "iam:GetOpenIDConnectProvider",
+        "iam:TagOpenIDConnectProvider",
+        "iam:UntagOpenIDConnectProvider",
+        "iam:ListOpenIDConnectProviders"
+      ]
+      Resource = "*"
+    }]
+  })
 }

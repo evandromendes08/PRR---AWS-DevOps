@@ -3,7 +3,8 @@ resource "random_id" "bucket" {
 }
 
 resource "aws_s3_bucket" "frontend" {
-  bucket = "${var.project_name}-frontend-${random_id.bucket.hex}"
+  bucket        = "${var.project_name}-frontend-${random_id.bucket.hex}"
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_public_access_block" "frontend" {
@@ -26,6 +27,7 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
 resource "aws_cloudfront_distribution" "frontend" {
   enabled             = true
   default_root_object = "index.html"
+  price_class         = "PriceClass_100"
 
   origin {
     domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
