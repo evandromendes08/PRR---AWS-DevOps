@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Event Management</title><link rel="stylesheet" href="/style.css"></head>
+<body><main><h1>Event Management</h1><p>Aplicação demonstrativa em AWS.</p><button id="load">Carregar eventos</button><pre id="out">Clique para consultar a API.</pre></main><script src="/config.js"></script><script>document.querySelector('#load').onclick=async()=>{const r=await fetch(window.API_BASE_URL+'/events');document.querySelector('#out').textContent=JSON.stringify(await r.json(),null,2)}</script></body>
+</html>

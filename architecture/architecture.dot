@@ -1,0 +1,65 @@
+digraph G {
+  graph [rankdir=LR, bgcolor="white", fontname="Arial", pad="0.3", nodesep="0.4", ranksep="0.8"];
+  node [shape=box, style="rounded,filled", fontname="Arial", fontsize=10, color="#334155", fillcolor="#f8fafc"];
+  edge [color="#475569", penwidth=1.4, arrowsize=0.8];
+
+  users [label="Usuários\nOrganizadores e participantes", fillcolor="#e0f2fe"];
+  cf [label="CloudFront\nFrontend CDN", fillcolor="#ede9fe"];
+  s3 [label="Amazon S3\nFrontend estático", fillcolor="#dcfce7"];
+  alb [label="Application Load Balancer\nHTTP :80", fillcolor="#ffedd5"];
+  cognito [label="Amazon Cognito\nUser Pool", fillcolor="#f3e8ff"];
+
+  subgraph cluster_vpc {
+    label="AWS VPC — 10.20.0.0/16";
+    color="#94a3b8"; style="rounded";
+    subgraph cluster_public {
+      label="2 Application Subnets"; color="#cbd5e1"; style="rounded,dashed";
+      alb;
+      ecs [label="Amazon ECS / Fargate\nCluster", fillcolor="#ffedd5"];
+    }
+    subgraph cluster_private {
+      label="2 Private Subnets"; color="#cbd5e1"; style="rounded,dashed";
+      rds [label="Amazon RDS\nPostgreSQL", fillcolor="#dbeafe"];
+    }
+  }
+
+  event [label="event-service\nGET/POST /events"];
+  ticket [label="ticket-service\n/tickets/*"];
+  reg [label="registration-service\n/registrations/*"];
+  pay [label="payment-service\n/payments/*"];
+  notif [label="notification-service\n/notifications/*"];
+
+  bus [label="Amazon EventBridge\nDomain Event Bus", fillcolor="#fef3c7"];
+  sqs [label="Amazon SQS\nNotification Queue", fillcolor="#fef3c7"];
+  lambda [label="AWS Lambda\nNotification Consumer", fillcolor="#ffedd5"];
+  ses [label="Amazon SES\nE-mail", fillcolor="#fee2e2"];
+  ecr [label="Amazon ECR\nDocker Images", fillcolor="#e0e7ff"];
+  cw [label="Amazon CloudWatch\nLogs / Metrics", fillcolor="#ecfccb"];
+  secrets [label="AWS Secrets Manager", fillcolor="#fce7f3"];
+  github [label="GitHub\nRepository", fillcolor="#e2e8f0"];
+  actions [label="GitHub Actions\nTerraform + Docker", fillcolor="#e2e8f0"];
+  oidc [label="GitHub OIDC\nIAM Role", fillcolor="#e2e8f0"];
+
+  users -> cf [label="HTTPS"];
+  cf -> s3 [label="GET"];
+  cf -> alb [label="/api/*"];
+  alb -> event;
+  alb -> ticket;
+  alb -> reg;
+  alb -> pay;
+  alb -> notif;
+  cognito -> users [dir=both, label="Auth"];
+
+  event -> rds; ticket -> rds; reg -> rds; pay -> rds; notif -> rds;
+  pay -> bus [label="payment.approved"];
+  bus -> sqs [label="rule"];
+  sqs -> lambda;
+  lambda -> ses;
+  ecr -> ecs [label="pull"];
+  ecs -> cw [style=dashed];
+  ecs -> secrets [style=dashed];
+  github -> actions;
+  actions -> oidc;
+  oidc -> ecr [label="push", style=dashed];
+  oidc -> ecs [label="deploy", style=dashed];
+}
