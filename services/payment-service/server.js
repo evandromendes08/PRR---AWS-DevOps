@@ -3,6 +3,7 @@ const { randomUUID } = require("node:crypto");
 const { URL } = require("node:url");
 const db = require("../shared/database");
 const auth = require("../shared/auth");
+const events = require("../shared/events");
 const { json, body, apiPath } = require("../shared/http");
 
 const port = Number(process.env.PORT || 3000);
@@ -26,7 +27,12 @@ const server = http.createServer(async (req, res) => {
 
   if (path === "/health") {
     try {
-      return json(res, 200, { service, status: "ok", database: await db.health() });
+      return json(res, 200, {
+        service,
+        status: "ok",
+        database: await db.health(),
+        messaging: events.health()
+      });
     } catch {
       return json(res, 503, { service, status: "unhealthy", database: { enabled: true, status: "error" } });
     }
@@ -55,7 +61,17 @@ const server = http.createServer(async (req, res) => {
       } else {
         payments.push(payment);
       }
-      return json(res, 201, payment);
+      const eventPublished = await events.publish({
+        source: "event-management.payment",
+        detailType: payment.status === "APPROVED" ? "PaymentApproved" : "PaymentDeclined",
+        detail: {
+          paymentId: payment.id,
+          registrationId: payment.registrationId,
+          amount: payment.amount,
+          status: payment.status
+        }
+      });
+      return json(res, 201, { ...payment, eventPublished });
     }
 
     return json(res, 404, { error: "Route not found", service, path: url.pathname });

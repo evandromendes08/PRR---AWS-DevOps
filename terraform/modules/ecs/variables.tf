@@ -67,3 +67,21 @@ variable "cognito_client_id" {
   description = "Cognito app client accepted by the services."
   type        = string
 }
+
+variable "event_bus_name" {
+  description = "EventBridge bus used for domain events."
+  type        = string
+}
+
+variable "event_bus_arn" {
+  description = "ARN of the EventBridge bus used for domain events."
+  type        = string
+}
+
+variable "consumer_queues" {
+  description = "SQS queues consumed by registration and notification services."
+  type = map(object({
+    arn = string
+    url = string
+  }))
+}

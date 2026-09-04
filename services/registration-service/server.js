@@ -3,6 +3,7 @@ const { randomUUID } = require("node:crypto");
 const { URL } = require("node:url");
 const db = require("../shared/database");
 const auth = require("../shared/auth");
+const queue = require("../shared/queue");
 const { json, body, apiPath } = require("../shared/http");
 
 const port = Number(process.env.PORT || 3000);
@@ -28,6 +29,23 @@ function registrationFromRow(row) {
   };
 }
 
+async function handlePaymentApproved(event) {
+  if (event["detail-type"] !== "PaymentApproved") return;
+  const registrationId = event.detail?.registrationId;
+  if (!registrationId) throw new Error("PaymentApproved event is missing registrationId");
+
+  if (db.enabled) {
+    await db.query(
+      "UPDATE registrations SET status = 'PAID' WHERE id = $1",
+      [registrationId]
+    );
+  } else {
+    const registration = registrations.find(item => item.id === registrationId);
+    if (registration) registration.status = "PAID";
+  }
+  console.log(JSON.stringify({ service, message: "payment event processed", registrationId }));
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return json(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -35,7 +53,12 @@ const server = http.createServer(async (req, res) => {
 
   if (path === "/health") {
     try {
-      return json(res, 200, { service, status: "ok", database: await db.health() });
+      return json(res, 200, {
+        service,
+        status: "ok",
+        database: await db.health(),
+        messaging: queue.health()
+      });
     } catch {
       return json(res, 503, { service, status: "unhealthy", database: { enabled: true, status: "error" } });
     }
@@ -81,12 +104,20 @@ const server = http.createServer(async (req, res) => {
 
 async function start() {
   await db.initialize(schema);
+  void queue.consume(handlePaymentApproved);
   server.listen(port, "0.0.0.0", () => {
-    console.log(JSON.stringify({ service, message: "listening", port, database: db.enabled }));
+    console.log(JSON.stringify({
+      service,
+      message: "listening",
+      port,
+      database: db.enabled,
+      messaging: queue.enabled
+    }));
   });
 }
 
 async function shutdown() {
+  queue.stop();
   server.close(async () => {
     await db.close();
     process.exit(0);

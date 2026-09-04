@@ -32,6 +32,14 @@ for port in 3001 3002 3003 3004 3005; do
   fi
 done
 
+for port in 3003 3004 3005; do
+  health="$(curl -fsS "http://127.0.0.1:${port}/health")"
+  HEALTH_PAYLOAD="${health}" node -e '
+    const health = JSON.parse(process.env.HEALTH_PAYLOAD);
+    if (health.messaging?.status !== "disabled") process.exit(1);
+  '
+done
+
 auth_container="$(docker compose -p "${PROJECT_NAME}" run --detach --no-deps \
   --publish 127.0.0.1:3010:3000 \
   -e AUTH_ENABLED=true \
@@ -107,9 +115,13 @@ REGISTRATIONS_PAYLOAD="${registrations}" EXPECTED_ID="${registration_id}" node -
   if (!registrations.items.some(item => item.id === process.env.EXPECTED_ID)) process.exit(1);
 '
 
-curl -fsS -X POST -H 'content-type: application/json' \
+payment="$(curl -fsS -X POST -H 'content-type: application/json' \
   -d "{\"registrationId\":\"${registration_id}\",\"amount\":75,\"approve\":true}" \
-  http://127.0.0.1:3004/api/payments >/dev/null
+  http://127.0.0.1:3004/api/payments)"
+PAYMENT_PAYLOAD="${payment}" node -e '
+  const payment = JSON.parse(process.env.PAYMENT_PAYLOAD);
+  if (payment.status !== "APPROVED" || payment.eventPublished !== false) process.exit(1);
+'
 curl -fsS -X POST -H 'content-type: application/json' \
   -d '{"channel":"email","message":"Integration Test"}' \
   http://127.0.0.1:3005/api/notifications >/dev/null
@@ -117,4 +129,4 @@ curl -fsS -X POST -H 'content-type: application/json' \
 counts="$(docker compose -p "${PROJECT_NAME}" exec -T postgres psql -U events -d events -Atc \
   "SELECT (SELECT count(*) FROM events),(SELECT count(*) FROM tickets),(SELECT count(*) FROM registrations),(SELECT count(*) FROM payments),(SELECT count(*) FROM notifications);")"
 
-echo "Integration tests passed: health=5/5 auth=1/1 validation=2/2 reservations='${codes}' table_counts=${counts}"
+echo "Integration tests passed: health=5/5 auth=1/1 messaging-disabled=3/3 validation=2/2 reservations='${codes}' table_counts=${counts}"

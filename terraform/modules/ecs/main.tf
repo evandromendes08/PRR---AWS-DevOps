@@ -41,6 +41,59 @@ resource "aws_iam_role_policy" "database_secret" {
   })
 }
 
+locals {
+  messaging_services = toset(["payment", "registration", "notification"])
+}
+
+resource "aws_iam_role" "task" {
+  for_each = local.messaging_services
+
+  name = "${var.project_name}-${each.key}-task"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "payment_events" {
+  name = "eventbridge-publish"
+  role = aws_iam_role.task["payment"].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "events:PutEvents"
+      Resource = var.event_bus_arn
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "queue_consumer" {
+  for_each = var.consumer_queues
+
+  name = "sqs-consume"
+  role = aws_iam_role.task[each.key].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "sqs:ChangeMessageVisibility",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:ReceiveMessage"
+      ]
+      Resource = each.value.arn
+    }]
+  })
+}
+
 resource "aws_ecs_task_definition" "service" {
   for_each = var.services
 
@@ -50,6 +103,7 @@ resource "aws_ecs_task_definition" "service" {
   cpu                      = "256"
   memory                   = "512"
   execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = try(aws_iam_role.task[each.key].arn, null)
 
   container_definitions = jsonencode([{
     name      = each.key
@@ -59,7 +113,7 @@ resource "aws_ecs_task_definition" "service" {
       containerPort = each.value.port
       protocol      = "tcp"
     }]
-    environment = [
+    environment = concat([
       { name = "DB_ENABLED", value = "true" },
       { name = "DB_HOST", value = var.database_host },
       { name = "DB_PORT", value = "5432" },
@@ -68,7 +122,15 @@ resource "aws_ecs_task_definition" "service" {
       { name = "AUTH_ENABLED", value = "true" },
       { name = "COGNITO_USER_POOL_ID", value = var.cognito_user_pool_id },
       { name = "COGNITO_CLIENT_ID", value = var.cognito_client_id }
-    ]
+      ], each.key == "payment" ? [
+      { name = "MESSAGING_ENABLED", value = "true" },
+      { name = "AWS_REGION", value = var.aws_region },
+      { name = "EVENT_BUS_NAME", value = var.event_bus_name }
+      ] : contains(["registration", "notification"], each.key) ? [
+      { name = "MESSAGING_ENABLED", value = "true" },
+      { name = "AWS_REGION", value = var.aws_region },
+      { name = "SQS_QUEUE_URL", value = var.consumer_queues[each.key].url }
+    ] : [])
     secrets = [
       { name = "DB_USER", valueFrom = "${var.database_secret_arn}:username::" },
       { name = "DB_PASSWORD", valueFrom = "${var.database_secret_arn}:password::" }

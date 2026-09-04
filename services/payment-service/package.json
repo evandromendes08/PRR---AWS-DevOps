@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@aws-sdk/client-eventbridge": "3.1126.0",
     "aws-jwt-verify": "5.2.1",
     "pg": "8.23.0"
   }

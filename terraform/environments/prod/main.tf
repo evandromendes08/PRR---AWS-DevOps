@@ -58,6 +58,18 @@ module "ecs" {
   database_secret_arn  = module.database.secret_arn
   cognito_user_pool_id = module.cognito.user_pool_id
   cognito_client_id    = module.cognito.client_id
+  event_bus_name       = module.messaging.event_bus_name
+  event_bus_arn        = module.messaging.event_bus_arn
+  consumer_queues = {
+    registration = {
+      arn = module.messaging.registration_queue_arn
+      url = module.messaging.registration_queue_url
+    }
+    notification = {
+      arn = module.messaging.notification_queue_arn
+      url = module.messaging.notification_queue_url
+    }
+  }
 }
 
 # The GitHub OIDC provider/role is shared and managed by the dev environment.

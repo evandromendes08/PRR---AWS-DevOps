@@ -9,7 +9,7 @@ ENV TF_IN_AUTOMATION=false
 ENV CHECKPOINT_DISABLE=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    bash ca-certificates curl git gnupg groff jq less openssh-client \
+    bash ca-certificates curl git gnupg graphviz groff jq less openssh-client \
     postgresql-client unzip zip \
     && rm -rf /var/lib/apt/lists/*
 

@@ -18,6 +18,11 @@ devops/
 scripts/
 docker-compose.yml
 
+# The toolbox build copies its entrypoint from the project context.
+!devops/
+devops/*
+!devops/entrypoint.sh
+
 # OS
 .DS_Store
 Thumbs.db

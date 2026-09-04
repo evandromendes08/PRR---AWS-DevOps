@@ -23,8 +23,7 @@ A arquitetura alvo utiliza:
 - Amazon Cognito;
 - Amazon EventBridge;
 - Amazon SQS;
-- AWS Lambda;
-- Amazon SES;
+- AWS Lambda e Amazon SES como evolução do envio real de e-mail;
 - Amazon S3;
 - Amazon CloudFront;
 - AWS Secrets Manager;
@@ -50,7 +49,7 @@ services/
 
 Cada serviço possui endpoint `/health`, rotas demonstrativas do domínio e suporte a PostgreSQL.
 
-Com `DB_ENABLED=true`, os dados são persistidos no PostgreSQL; sem essa variável, os serviços utilizam memória para testes rápidos. A integração com Cognito, EventBridge, SQS e SES permanece como evolução do domínio.
+Com `DB_ENABLED=true`, os dados são persistidos no PostgreSQL; sem essa variável, os serviços utilizam memória para testes rápidos. Cognito protege as rotas de negócio. O pagamento aprovado é publicado no EventBridge e distribuído para duas filas SQS consumidas pelos serviços de inscrições e notificações. O envio real por SES permanece como evolução.
 
 ## Fluxo demonstrativo
 
@@ -65,11 +64,11 @@ Simular pagamento
     ↓
 Publicar evento de pagamento
     ↓
-EventBridge → SQS
+EventBridge
     ↓
-Lambda de notificação
-    ↓
-SES
+SQS de inscrições ─→ Atualizar inscrição para PAID
+    +
+SQS de notificações ─→ Persistir notificação QUEUED
 ```
 
 O `ticket-service` também demonstra controle básico de disponibilidade para evitar reserva acima do estoque disponível.
@@ -196,6 +195,8 @@ A primeira execução exige o bootstrap do bucket de state e da role OIDC descri
 - [x] Ativar e validar a integração RDS/Secrets Manager nas task definitions DEV
 - [x] Preparar autenticação Cognito e validar bloqueio local das APIs
 - [x] Ativar e validar Cognito em DEV
-- [ ] Integrar EventBridge, SQS e SES à aplicação
+- [x] Implementar e testar localmente a integração EventBridge/SQS
+- [x] Ativar e validar EventBridge/SQS em DEV
+- [ ] Integrar o envio real de e-mail com SES
 - [ ] Refinar observabilidade e segurança
 - [ ] Gravar vídeo final

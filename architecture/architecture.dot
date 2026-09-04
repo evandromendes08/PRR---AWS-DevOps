@@ -30,9 +30,9 @@ digraph G {
   notif [label="notification-service\n/notifications/*"];
 
   bus [label="Amazon EventBridge\nDomain Event Bus", fillcolor="#fef3c7"];
-  sqs [label="Amazon SQS\nNotification Queue", fillcolor="#fef3c7"];
-  lambda [label="AWS Lambda\nNotification Consumer", fillcolor="#ffedd5"];
-  ses [label="Amazon SES\nE-mail", fillcolor="#fee2e2"];
+  sqs_reg [label="Amazon SQS\nRegistration Queue", fillcolor="#fef3c7"];
+  sqs_notif [label="Amazon SQS\nNotification Queue", fillcolor="#fef3c7"];
+  ses [label="Amazon SES\nE-mail (futuro)", fillcolor="#fee2e2"];
   ecr [label="Amazon ECR\nDocker Images", fillcolor="#e0e7ff"];
   cw [label="Amazon CloudWatch\nLogs / Metrics", fillcolor="#ecfccb"];
   secrets [label="AWS Secrets Manager", fillcolor="#fce7f3"];
@@ -51,10 +51,12 @@ digraph G {
   cognito -> users [dir=both, label="Auth"];
 
   event -> rds; ticket -> rds; reg -> rds; pay -> rds; notif -> rds;
-  pay -> bus [label="payment.approved"];
-  bus -> sqs [label="rule"];
-  sqs -> lambda;
-  lambda -> ses;
+  pay -> bus [label="PaymentApproved"];
+  bus -> sqs_reg [label="rule"];
+  bus -> sqs_notif [label="rule"];
+  sqs_reg -> reg [label="consume"];
+  sqs_notif -> notif [label="consume"];
+  notif -> ses [label="e-mail", style=dashed];
   ecr -> ecs [label="pull"];
   ecs -> cw [style=dashed];
   ecs -> secrets [style=dashed];

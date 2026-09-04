@@ -21,7 +21,7 @@
 | Dados | Amazon RDS PostgreSQL |
 | Auth | Amazon Cognito |
 | Assíncrono | Amazon EventBridge + Amazon SQS |
-| Notificações | AWS Lambda + Amazon SES |
+| Notificações | notification-service consumindo SQS; Amazon SES como evolução |
 | Secrets | AWS Secrets Manager |
 | Logs | Amazon CloudWatch |
 | Registro de imagens | Amazon ECR |
@@ -55,15 +55,13 @@ Payment Service
       |
       v
 EventBridge
-      |
-      v
-SQS Notification Queue
-      |
-      v
-Lambda Notification Consumer
-      |
-      v
-SES
+      |---------------------------|
+      v                           v
+SQS Registration Queue     SQS Notification Queue
+      |                           |
+      v                           v
+Registration Service       Notification Service
+(status PAID)              (registro QUEUED)
 ```
 
 ## Rede
@@ -95,7 +93,7 @@ A trust policy do role OIDC restringe a claim `sub` à branch `main` e aos pull 
 
 - ECS Fargate permite aumentar o número de tasks por serviço.
 - ALB distribui requisições entre tasks.
-- Mensageria assíncrona desacopla processamento de notificações.
+- Mensageria assíncrona desacopla a confirmação da inscrição e a criação da notificação do pagamento.
 - RDS mantém o modelo relacional necessário para eventos, ingressos, inscrições e pagamentos.
 
 ## Capacidade
@@ -108,9 +106,9 @@ O CloudFront entrega o frontend e também encaminha `/api/*` para o ALB. Assim, 
 
 ## Evolução futura
 
-- Implementar a regra EventBridge → SQS e o consumidor Lambda → SES representados na arquitetura alvo.
+- Integrar Amazon SES ao `notification-service` para o envio real de e-mail; avaliar Lambda apenas se houver benefício operacional.
 - Evoluir as migrações de banco para uma ferramenta versionada antes de uso em produção.
-- Validar tokens Cognito na entrada da aplicação.
+- Adicionar DLQs e alarmes para falhas repetidas nos consumidores SQS.
 - API Gateway na frente do ALB caso requisitos de gerenciamento de APIs aumentem.
 - WAF associado ao CloudFront.
 - Subnets privadas para ECS + NAT/VPC Endpoints.
