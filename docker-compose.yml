@@ -1,4 +1,29 @@
 services:
+  event-service:
+    build: ./services/event-service
+    ports:
+      - "3001:3000"
+
+  ticket-service:
+    build: ./services/ticket-service
+    ports:
+      - "3002:3000"
+
+  registration-service:
+    build: ./services/registration-service
+    ports:
+      - "3003:3000"
+
+  payment-service:
+    build: ./services/payment-service
+    ports:
+      - "3004:3000"
+
+  notification-service:
+    build: ./services/notification-service
+    ports:
+      - "3005:3000"
+
   toolbox:
     build:
       context: .

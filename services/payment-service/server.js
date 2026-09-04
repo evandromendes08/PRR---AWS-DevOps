@@ -38,8 +38,9 @@ function body(req) {
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return json(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host}`);
+  const path = url.pathname.startsWith("/api/") ? url.pathname.slice(4) : url.pathname;
 
-  if (url.pathname === "/health") return json(res, 200, { service, status: "ok" });
+  if (path === "/health") return json(res, 200, { service, status: "ok" });
 
   try {
     if (service === "event-service" && req.method === "GET" && url.pathname === "/events") {
@@ -80,7 +81,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { items: state.registrations });
     }
 
-    if (service === "payment-service" && req.method === "POST" && url.pathname === "/payments") {
+    if (service === "payment-service" && req.method === "POST" && path === "/payments") {
       const input = await body(req);
       const approved = input.approve !== false;
       const payment = { id: `pay-${Date.now()}`, registrationId: input.registrationId || "reg-demo", amount: Number(input.amount || 100), status: approved ? "APPROVED" : "DECLINED" };

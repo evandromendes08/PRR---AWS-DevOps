@@ -20,9 +20,9 @@ aws s3api put-public-access-block \
 
 ## 2. Configurar o backend
 
-Copie `terraform/environments/dev/backend.tf.example` para `backend.tf` e substitua o nome do bucket.
+Copie `terraform/environments/dev/backend.hcl.example` para `backend.hcl` e substitua o nome do bucket.
 
-O arquivo `backend.tf` não deve ser versionado quando contiver dados específicos do ambiente.
+O arquivo `backend.hcl` não deve ser versionado quando contiver dados específicos do ambiente.
 
 ## 3. Primeira execução
 

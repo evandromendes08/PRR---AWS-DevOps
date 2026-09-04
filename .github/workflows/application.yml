@@ -1,0 +1,117 @@
+name: Application DEV
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/**"
+      - "frontend/**"
+      - ".github/workflows/application.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: application-dev
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  ECS_CLUSTER: event-management-dev-cluster
+  ECR_PREFIX: event-management-dev
+  FRONTEND_BUCKET: event-management-dev-frontend-a5f264ea
+  CLOUDFRONT_DISTRIBUTION_ID: E1T6V1XAPXO14Z
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [event, ticket, registration, payment, notification]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr-login
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Validate service syntax
+        run: node --check "services/${{ matrix.service }}-service/server.js"
+
+      - name: Test container locally
+        run: |
+          docker build \
+            --tag "local/${{ matrix.service }}-service:test" \
+            "services/${{ matrix.service }}-service"
+          container_id=$(docker run --detach "local/${{ matrix.service }}-service:test")
+          trap 'docker rm --force "${container_id}" >/dev/null' EXIT
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if docker exec "${container_id}" wget -q -O - http://127.0.0.1:3000/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs "${container_id}"
+          exit 1
+
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --provenance=false \
+            --tag "${REGISTRY}/${ECR_PREFIX}/${{ matrix.service }}-service:${GITHUB_SHA}" \
+            --tag "${REGISTRY}/${ECR_PREFIX}/${{ matrix.service }}-service:latest" \
+            --push \
+            "services/${{ matrix.service }}-service"
+
+      - name: Redeploy ECS service
+        run: |
+          aws ecs update-service \
+            --region "${AWS_REGION}" \
+            --cluster "${ECS_CLUSTER}" \
+            --service "event-management-dev-${{ matrix.service }}" \
+            --force-new-deployment >/dev/null
+
+      - name: Wait for ECS stability
+        run: |
+          aws ecs wait services-stable \
+            --region "${AWS_REGION}" \
+            --cluster "${ECS_CLUSTER}" \
+            --services "event-management-dev-${{ matrix.service }}"
+
+  deploy-frontend:
+    needs: build-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload frontend
+        run: |
+          aws s3 cp frontend/index.html "s3://${FRONTEND_BUCKET}/index.html" \
+            --content-type "text/html; charset=utf-8" --cache-control "no-cache"
+          aws s3 cp frontend/config.js "s3://${FRONTEND_BUCKET}/config.js" \
+            --content-type "application/javascript; charset=utf-8" --cache-control "no-cache"
+          aws s3 cp frontend/style.css "s3://${FRONTEND_BUCKET}/style.css" \
+            --content-type "text/css; charset=utf-8" --cache-control "public,max-age=3600"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+            --paths "/*"

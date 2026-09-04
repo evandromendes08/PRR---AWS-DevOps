@@ -38,15 +38,16 @@ function body(req) {
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return json(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host}`);
+  const path = url.pathname.startsWith("/api/") ? url.pathname.slice(4) : url.pathname;
 
-  if (url.pathname === "/health") return json(res, 200, { service, status: "ok" });
+  if (path === "/health") return json(res, 200, { service, status: "ok" });
 
   try {
-    if (service === "event-service" && req.method === "GET" && url.pathname === "/events") {
+    if (service === "event-service" && req.method === "GET" && path === "/events") {
       return json(res, 200, { items: state.events });
     }
 
-    if (service === "event-service" && req.method === "POST" && url.pathname === "/events") {
+    if (service === "event-service" && req.method === "POST" && path === "/events") {
       const input = await body(req);
       const event = { id: `evt-${Date.now()}`, name: input.name || "Novo evento", city: input.city || "Brasília", available: Number(input.available || 50) };
       state.events.push(event);

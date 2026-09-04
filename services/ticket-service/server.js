@@ -38,8 +38,9 @@ function body(req) {
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return json(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host}`);
+  const path = url.pathname.startsWith("/api/") ? url.pathname.slice(4) : url.pathname;
 
-  if (url.pathname === "/health") return json(res, 200, { service, status: "ok" });
+  if (path === "/health") return json(res, 200, { service, status: "ok" });
 
   try {
     if (service === "event-service" && req.method === "GET" && url.pathname === "/events") {
@@ -54,12 +55,12 @@ const server = http.createServer(async (req, res) => {
       return json(res, 201, event);
     }
 
-    if (service === "ticket-service" && req.method === "GET" && url.pathname === "/tickets/availability") {
+    if (service === "ticket-service" && req.method === "GET" && path === "/tickets/availability") {
       const eventId = url.searchParams.get("eventId") || "evt-001";
       return json(res, 200, { eventId, ...(state.tickets[eventId] || { available: 0, sold: 0 }) });
     }
 
-    if (service === "ticket-service" && req.method === "POST" && url.pathname === "/tickets/reserve") {
+    if (service === "ticket-service" && req.method === "POST" && path === "/tickets/reserve") {
       const input = await body(req);
       const eventId = input.eventId || "evt-001";
       const quantity = Math.max(1, Number(input.quantity || 1));

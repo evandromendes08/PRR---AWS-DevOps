@@ -12,7 +12,7 @@ Projeto acadêmico de arquitetura cloud, microserviços, Infraestrutura como Có
 
 ## Arquitetura
 
-A solução utiliza:
+A arquitetura alvo utiliza:
 
 - Amazon VPC em duas Availability Zones;
 - Application Load Balancer;
@@ -49,6 +49,8 @@ services/
 ```
 
 Cada serviço possui um servidor HTTP mínimo, endpoint `/health` e endpoints demonstrativos do domínio.
+
+Na implementação atual, os dados dos serviços são mantidos em memória. A integração efetiva com RDS, Cognito, EventBridge, SQS e SES permanece como evolução do domínio.
 
 ## Fluxo demonstrativo
 
@@ -109,12 +111,12 @@ Os workflows estão em `.github/workflows/`.
 ### Aplicação
 
 - Build das imagens Docker;
+- Validação das imagens em `linux/amd64`;
 - Push para ECR;
-- Registro de novas task definitions;
-- Atualização dos serviços ECS;
+- Novo deployment dos serviços ECS;
 - Publicação do frontend no S3.
 
-A autenticação GitHub → AWS utiliza OIDC, evitando chaves AWS de longa duração. O GitHub recomenda restringir a trust policy pela claim `sub` para limitar quais repositórios/branches podem assumir a role. citeturn410081search0turn410081search5
+A autenticação GitHub → AWS utiliza OIDC, evitando chaves AWS de longa duração. A trust policy restringe a claim `sub` à branch `main` e aos pull requests deste repositório.
 
 ## Backend do Terraform
 
@@ -174,9 +176,15 @@ A primeira execução exige o bootstrap do bucket de state e da role OIDC descri
 - [x] Dockerfiles
 - [x] Docker Compose
 - [x] Workflows GitHub Actions
-- [ ] Validar Terraform em AWS
-- [ ] Criar backend remoto definitivo
-- [ ] Executar primeiro deploy
-- [ ] Validar fluxo completo
+- [x] Validar Terraform em AWS
+- [x] Criar backend remoto definitivo
+- [x] Executar primeiro deploy DEV
+- [x] Publicar as cinco imagens no ECR
+- [x] Executar e validar cinco serviços no ECS
+- [x] Publicar frontend no S3/CloudFront
+- [x] Validar fluxo HTTP frontend → CloudFront → ALB → ECS
+- [x] Preparar workflows GitHub Actions
+- [ ] Validar os workflows no GitHub após o push
+- [ ] Integrar os serviços aos recursos gerenciados da AWS
 - [ ] Refinar observabilidade e segurança
 - [ ] Gravar vídeo final

@@ -88,7 +88,7 @@ A escolha de não utilizar NAT Gateway nesta primeira versão reduz custo recorr
 - IAM com princípio do menor privilégio como objetivo de evolução.
 - OIDC para autenticação do GitHub Actions na AWS, evitando chaves AWS de longa duração.
 
-O GitHub recomenda restringir a trust policy do role OIDC por repositório/branch usando a claim `sub`. citeturn410081search0turn410081search5
+A trust policy do role OIDC restringe a claim `sub` à branch `main` e aos pull requests deste repositório.
 
 ## Escalabilidade
 
@@ -107,6 +107,9 @@ O CloudFront entrega o frontend e também encaminha `/api/*` para o ALB. Assim, 
 
 ## Evolução futura
 
+- Implementar a regra EventBridge → SQS e o consumidor Lambda → SES representados na arquitetura alvo.
+- Persistir o domínio dos microsserviços no RDS e consumir credenciais via Secrets Manager.
+- Validar tokens Cognito na entrada da aplicação.
 - API Gateway na frente do ALB caso requisitos de gerenciamento de APIs aumentem.
 - WAF associado ao CloudFront.
 - Subnets privadas para ECS + NAT/VPC Endpoints.

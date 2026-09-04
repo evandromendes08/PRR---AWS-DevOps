@@ -38,8 +38,9 @@ function body(req) {
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return json(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host}`);
+  const path = url.pathname.startsWith("/api/") ? url.pathname.slice(4) : url.pathname;
 
-  if (url.pathname === "/health") return json(res, 200, { service, status: "ok" });
+  if (path === "/health") return json(res, 200, { service, status: "ok" });
 
   try {
     if (service === "event-service" && req.method === "GET" && url.pathname === "/events") {
@@ -88,7 +89,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 201, payment);
     }
 
-    if (service === "notification-service" && req.method === "POST" && url.pathname === "/notifications") {
+    if (service === "notification-service" && req.method === "POST" && path === "/notifications") {
       const input = await body(req);
       return json(res, 202, { id: `not-${Date.now()}`, channel: input.channel || "email", status: "QUEUED", message: input.message || "Notificação de demonstração" });
     }

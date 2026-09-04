@@ -38,8 +38,9 @@ function body(req) {
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return json(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host}`);
+  const path = url.pathname.startsWith("/api/") ? url.pathname.slice(4) : url.pathname;
 
-  if (url.pathname === "/health") return json(res, 200, { service, status: "ok" });
+  if (path === "/health") return json(res, 200, { service, status: "ok" });
 
   try {
     if (service === "event-service" && req.method === "GET" && url.pathname === "/events") {
@@ -69,14 +70,14 @@ const server = http.createServer(async (req, res) => {
       return json(res, 201, { reservationId: `res-${Date.now()}`, eventId, quantity, status: "RESERVED" });
     }
 
-    if (service === "registration-service" && req.method === "POST" && url.pathname === "/registrations") {
+    if (service === "registration-service" && req.method === "POST" && path === "/registrations") {
       const input = await body(req);
       const registration = { id: `reg-${Date.now()}`, eventId: input.eventId || "evt-001", participant: input.participant || "Participante Demo", status: "PENDING_PAYMENT" };
       state.registrations.push(registration);
       return json(res, 201, registration);
     }
 
-    if (service === "registration-service" && req.method === "GET" && url.pathname === "/registrations") {
+    if (service === "registration-service" && req.method === "GET" && path === "/registrations") {
       return json(res, 200, { items: state.registrations });
     }
 
