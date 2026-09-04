@@ -1,5 +1,6 @@
 resource "aws_cognito_user_pool" "this" {
-  name = "${var.project_name}-users"
+  name                     = "${var.project_name}-users"
+  auto_verified_attributes = ["email"]
 }
 
 resource "aws_cognito_user_pool_client" "web" {

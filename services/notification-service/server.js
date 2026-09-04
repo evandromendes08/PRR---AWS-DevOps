@@ -2,6 +2,7 @@ const http = require("node:http");
 const { randomUUID } = require("node:crypto");
 const { URL } = require("node:url");
 const db = require("../shared/database");
+const auth = require("../shared/auth");
 const { json, body, apiPath } = require("../shared/http");
 
 const port = Number(process.env.PORT || 3000);
@@ -31,6 +32,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
+    await auth.authenticate(req);
+
     if (req.method === "POST" && path === "/notifications") {
       const input = await body(req);
       const notification = {

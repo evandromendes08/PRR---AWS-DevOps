@@ -32,6 +32,21 @@ for port in 3001 3002 3003 3004 3005; do
   fi
 done
 
+auth_container="$(docker compose -p "${PROJECT_NAME}" run --detach --no-deps \
+  --publish 127.0.0.1:3010:3000 \
+  -e AUTH_ENABLED=true \
+  -e COGNITO_USER_POOL_ID=us-east-1_aaaaaaaaa \
+  -e COGNITO_CLIENT_ID=local-test-client \
+  event-service)"
+for _ in {1..15}; do
+  curl -fsS http://127.0.0.1:3010/health >/dev/null 2>&1 && break
+  sleep 1
+done
+unauthorized_code="$(curl -sS -o /dev/null -w '%{http_code}' \
+  http://127.0.0.1:3010/api/events)"
+docker rm --force "${auth_container}" >/dev/null
+[[ "${unauthorized_code}" == "401" ]]
+
 invalid_json_code="$(curl -sS -o /dev/null -w '%{http_code}' -X POST \
   -H 'content-type: application/json' -d '{invalid' \
   http://127.0.0.1:3001/api/events)"
@@ -102,4 +117,4 @@ curl -fsS -X POST -H 'content-type: application/json' \
 counts="$(docker compose -p "${PROJECT_NAME}" exec -T postgres psql -U events -d events -Atc \
   "SELECT (SELECT count(*) FROM events),(SELECT count(*) FROM tickets),(SELECT count(*) FROM registrations),(SELECT count(*) FROM payments),(SELECT count(*) FROM notifications);")"
 
-echo "Integration tests passed: health=5/5 validation=2/2 reservations='${codes}' table_counts=${counts}"
+echo "Integration tests passed: health=5/5 auth=1/1 validation=2/2 reservations='${codes}' table_counts=${counts}"

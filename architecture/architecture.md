@@ -80,6 +80,7 @@ A escolha de não utilizar NAT Gateway nesta primeira versão reduz custo recorr
 ## Segurança
 
 - Cognito para autenticação.
+- Access tokens Cognito validados diretamente pelos microserviços; `/health` permanece público para o ALB.
 - CloudFront como ponto público HTTPS.
 - ALB como única entrada de API.
 - Containers sem regra de entrada aberta à Internet.

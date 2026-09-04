@@ -64,7 +64,10 @@ resource "aws_ecs_task_definition" "service" {
       { name = "DB_HOST", value = var.database_host },
       { name = "DB_PORT", value = "5432" },
       { name = "DB_NAME", value = var.database_name },
-      { name = "DB_SSL", value = "true" }
+      { name = "DB_SSL", value = "true" },
+      { name = "AUTH_ENABLED", value = "true" },
+      { name = "COGNITO_USER_POOL_ID", value = var.cognito_user_pool_id },
+      { name = "COGNITO_CLIENT_ID", value = var.cognito_client_id }
     ]
     secrets = [
       { name = "DB_USER", valueFrom = "${var.database_secret_arn}:username::" },

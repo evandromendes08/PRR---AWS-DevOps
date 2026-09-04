@@ -2,6 +2,7 @@ const http = require("node:http");
 const { randomUUID } = require("node:crypto");
 const { URL } = require("node:url");
 const db = require("../shared/database");
+const auth = require("../shared/auth");
 const { json, body, apiPath } = require("../shared/http");
 
 const port = Number(process.env.PORT || 3000);
@@ -49,6 +50,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
+    await auth.authenticate(req);
+
     if (req.method === "GET" && path === "/events") {
       if (!db.enabled) return json(res, 200, { items: events });
       const result = await db.query("SELECT id, name, city, available FROM events ORDER BY created_at");

@@ -194,6 +194,8 @@ A primeira execução exige o bootstrap do bucket de state e da role OIDC descri
 - [x] Validar os workflows no GitHub após o push
 - [x] Implementar e testar persistência PostgreSQL local
 - [x] Ativar e validar a integração RDS/Secrets Manager nas task definitions DEV
-- [ ] Integrar Cognito, EventBridge, SQS e SES à aplicação
+- [x] Preparar autenticação Cognito e validar bloqueio local das APIs
+- [x] Ativar e validar Cognito em DEV
+- [ ] Integrar EventBridge, SQS e SES à aplicação
 - [ ] Refinar observabilidade e segurança
 - [ ] Gravar vídeo final

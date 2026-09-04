@@ -59,6 +59,7 @@ jobs:
       - name: Validate service syntax
         run: |
           node --check "services/${{ matrix.service }}-service/server.js"
+          node --check services/shared/auth.js
           node --check services/shared/database.js
           node --check services/shared/http.js
 
@@ -124,6 +125,8 @@ jobs:
           aws s3 cp frontend/index.html "s3://${FRONTEND_BUCKET}/index.html" \
             --content-type "text/html; charset=utf-8" --cache-control "no-cache"
           aws s3 cp frontend/config.js "s3://${FRONTEND_BUCKET}/config.js" \
+            --content-type "application/javascript; charset=utf-8" --cache-control "no-cache"
+          aws s3 cp frontend/app.js "s3://${FRONTEND_BUCKET}/app.js" \
             --content-type "application/javascript; charset=utf-8" --cache-control "no-cache"
           aws s3 cp frontend/style.css "s3://${FRONTEND_BUCKET}/style.css" \
             --content-type "text/css; charset=utf-8" --cache-control "public,max-age=3600"

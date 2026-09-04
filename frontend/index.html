@@ -1,5 +1,55 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Event Management</title><link rel="stylesheet" href="/style.css"></head>
-<body><main><h1>Event Management</h1><p>Aplicação demonstrativa em AWS.</p><button id="load">Carregar eventos</button><pre id="out">Clique para consultar a API.</pre></main><script src="/config.js"></script><script>document.querySelector('#load').onclick=async()=>{const r=await fetch(window.API_BASE_URL+'/events');document.querySelector('#out').textContent=JSON.stringify(await r.json(),null,2)}</script></body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Event Management</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>Event Management</h1>
+    <p>Aplicação demonstrativa em AWS com autenticação Amazon Cognito.</p>
+
+    <section id="login-panel">
+      <h2>Entrar</h2>
+      <form id="login-form">
+        <label>Usuário <input id="username" autocomplete="username" required></label>
+        <label>Senha <input id="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Entrar</button>
+      </form>
+
+      <details>
+        <summary>Criar uma conta</summary>
+        <form id="signup-form">
+          <label>Usuário <input id="signup-username" autocomplete="username" required></label>
+          <label>E-mail <input id="signup-email" type="email" autocomplete="email" required></label>
+          <label>Senha <input id="signup-password" type="password" autocomplete="new-password" minlength="8" required></label>
+          <small>A senha deve conter maiúscula, minúscula, número e símbolo.</small>
+          <button type="submit">Cadastrar</button>
+        </form>
+      </details>
+
+      <form id="confirmation-form" hidden>
+        <h2>Confirmar conta</h2>
+        <label>Usuário <input id="confirmation-username" autocomplete="username" required></label>
+        <label>Código recebido por e-mail <input id="confirmation-code" inputmode="numeric" autocomplete="one-time-code" required></label>
+        <button type="submit">Confirmar</button>
+      </form>
+    </section>
+
+    <section id="session-panel" hidden>
+      <p>Autenticado como <strong id="current-user"></strong>.</p>
+      <div class="actions">
+        <button id="load" type="button">Carregar eventos</button>
+        <button id="logout" class="secondary" type="button">Sair</button>
+      </div>
+    </section>
+
+    <p id="status" role="status" aria-live="polite"></p>
+    <pre id="out">Faça login para consultar a API.</pre>
+  </main>
+  <script src="/config.js"></script>
+  <script src="/app.js"></script>
+</body>
 </html>

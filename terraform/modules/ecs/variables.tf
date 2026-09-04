@@ -57,3 +57,13 @@ variable "database_secret_arn" {
   description = "Secrets Manager ARN containing the database username and password keys."
   type        = string
 }
+
+variable "cognito_user_pool_id" {
+  description = "Cognito user pool used to validate access tokens."
+  type        = string
+}
+
+variable "cognito_client_id" {
+  description = "Cognito app client accepted by the services."
+  type        = string
+}
