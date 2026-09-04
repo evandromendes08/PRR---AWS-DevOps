@@ -58,8 +58,8 @@ module "ecs" {
 module "iam" {
   source = "../../modules/iam"
 
-  project_name      = var.project_name
-  github_repository = "evandromendes08/PRR---AWS-DevOps"
+  project_name                   = var.project_name
+  github_oidc_subject_repository = "evandromendes08@163218496/PRR---AWS-DevOps@1353832769"
 }
 
 module "frontend" {
