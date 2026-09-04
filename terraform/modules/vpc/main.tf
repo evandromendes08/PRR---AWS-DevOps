@@ -14,6 +14,10 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+data "aws_ec2_managed_prefix_list" "cloudfront_origin" {
+  name = "com.amazonaws.global.cloudfront.origin-facing"
+}
+
 resource "aws_subnet" "public" {
   count = 2
 
@@ -56,10 +60,11 @@ resource "aws_security_group" "alb" {
   vpc_id = aws_vpc.this.id
 
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "HTTP from CloudFront origin-facing servers"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront_origin.id]
   }
 
   egress {

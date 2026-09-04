@@ -4,7 +4,7 @@ digraph G {
   edge [color="#475569", penwidth=1.4, arrowsize=0.8];
 
   users [label="Usuários\nOrganizadores e participantes", fillcolor="#e0f2fe"];
-  cf [label="CloudFront\nFrontend CDN", fillcolor="#ede9fe"];
+  cf [label="CloudFront\nFrontend CDN + Security Headers", fillcolor="#ede9fe"];
   s3 [label="Amazon S3\nFrontend estático", fillcolor="#dcfce7"];
   alb [label="Application Load Balancer\nHTTP :80", fillcolor="#ffedd5"];
   cognito [label="Amazon Cognito\nUser Pool", fillcolor="#f3e8ff"];
@@ -32,9 +32,11 @@ digraph G {
   bus [label="Amazon EventBridge\nDomain Event Bus", fillcolor="#fef3c7"];
   sqs_reg [label="Amazon SQS\nRegistration Queue", fillcolor="#fef3c7"];
   sqs_notif [label="Amazon SQS\nNotification Queue", fillcolor="#fef3c7"];
+  dlq_reg [label="Amazon SQS\nRegistration DLQ", fillcolor="#fee2e2"];
+  dlq_notif [label="Amazon SQS\nNotification DLQ", fillcolor="#fee2e2"];
   ses [label="Amazon SES\nE-mail (futuro)", fillcolor="#fee2e2"];
   ecr [label="Amazon ECR\nDocker Images", fillcolor="#e0e7ff"];
-  cw [label="Amazon CloudWatch\nLogs / Metrics", fillcolor="#ecfccb"];
+  cw [label="Amazon CloudWatch\nLogs / Dashboard / Alarms", fillcolor="#ecfccb"];
   secrets [label="AWS Secrets Manager", fillcolor="#fce7f3"];
   github [label="GitHub\nRepository", fillcolor="#e2e8f0"];
   actions [label="GitHub Actions\nTerraform + Docker", fillcolor="#e2e8f0"];
@@ -42,7 +44,7 @@ digraph G {
 
   users -> cf [label="HTTPS"];
   cf -> s3 [label="GET"];
-  cf -> alb [label="/api/*"];
+  cf -> alb [label="/api/*\nmanaged prefix list"];
   alb -> event;
   alb -> ticket;
   alb -> reg;
@@ -56,6 +58,10 @@ digraph G {
   bus -> sqs_notif [label="rule"];
   sqs_reg -> reg [label="consume"];
   sqs_notif -> notif [label="consume"];
+  sqs_reg -> dlq_reg [label="5 failures", style=dashed];
+  sqs_notif -> dlq_notif [label="5 failures", style=dashed];
+  dlq_reg -> cw [label="alarm", style=dashed];
+  dlq_notif -> cw [label="alarm", style=dashed];
   notif -> ses [label="e-mail", style=dashed];
   ecr -> ecs [label="pull"];
   ecs -> cw [style=dashed];

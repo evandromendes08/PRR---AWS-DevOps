@@ -80,6 +80,14 @@ module "frontend" {
   alb_dns_name = module.alb.dns_name
 }
 
+module "observability" {
+  source = "../../modules/observability"
+
+  project_name             = local.resource_prefix
+  services                 = toset(keys(local.services))
+  load_balancer_arn_suffix = module.alb.arn_suffix
+}
+
 output "alb_dns_name" {
   value = module.alb.dns_name
 }

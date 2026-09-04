@@ -80,10 +80,12 @@ A escolha de não utilizar NAT Gateway nesta primeira versão reduz custo recorr
 - Cognito para autenticação.
 - Access tokens Cognito validados diretamente pelos microserviços; `/health` permanece público para o ALB.
 - CloudFront como ponto público HTTPS.
-- ALB como única entrada de API.
+- ALB como origem da API, aceitando HTTP somente da lista gerenciada de servidores de origem do CloudFront.
 - Containers sem regra de entrada aberta à Internet.
 - RDS sem exposição pública.
 - Secrets Manager para credenciais do banco.
+- Cabeçalhos HSTS, `X-Frame-Options`, `X-Content-Type-Options`, Referrer Policy e XSS Protection aplicados pelo CloudFront.
+- Containers executados como usuário não root, com pacotes criptográficos atualizados e sem npm no runtime.
 - IAM com princípio do menor privilégio como objetivo de evolução.
 - OIDC para autenticação do GitHub Actions na AWS, evitando chaves AWS de longa duração.
 
@@ -93,7 +95,9 @@ A trust policy do role OIDC restringe a claim `sub` à branch `main` e aos pull 
 
 - ECS Fargate permite aumentar o número de tasks por serviço.
 - ALB distribui requisições entre tasks.
+- Circuit breaker do ECS reverte automaticamente um deployment que não estabiliza.
 - Mensageria assíncrona desacopla a confirmação da inscrição e a criação da notificação do pagamento.
+- Cada consumidor SQS possui DLQ após cinco tentativas, com retenção de 14 dias.
 - RDS mantém o modelo relacional necessário para eventos, ingressos, inscrições e pagamentos.
 
 ## Capacidade
@@ -108,7 +112,7 @@ O CloudFront entrega o frontend e também encaminha `/api/*` para o ALB. Assim, 
 
 - Integrar Amazon SES ao `notification-service` para o envio real de e-mail; avaliar Lambda apenas se houver benefício operacional.
 - Evoluir as migrações de banco para uma ferramenta versionada antes de uso em produção.
-- Adicionar DLQs e alarmes para falhas repetidas nos consumidores SQS.
+- Conectar os alarmes CloudWatch a um canal de notificação SNS quando houver destinatário aprovado.
 - API Gateway na frente do ALB caso requisitos de gerenciamento de APIs aumentem.
 - WAF associado ao CloudFront.
 - Subnets privadas para ECS + NAT/VPC Endpoints.

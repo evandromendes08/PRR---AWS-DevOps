@@ -34,6 +34,8 @@ A arquitetura alvo utiliza:
 
 O CloudFront funciona como ponto único HTTPS. O frontend é servido pelo S3 e as chamadas com `/api/*` são encaminhadas para o ALB.
 
+O Terraform também prepara cabeçalhos HTTP de segurança, restringe a entrada do ALB à lista gerenciada de servidores de origem do CloudFront, ativa rollback automático dos deployments ECS, adiciona DLQs às filas e centraliza métricas operacionais em um dashboard CloudWatch.
+
 O diagrama técnico está em [`architecture/architecture.svg`](architecture/architecture.svg) e [`architecture/architecture.png`](architecture/architecture.png).
 
 ## Microserviços
@@ -197,6 +199,8 @@ A primeira execução exige o bootstrap do bucket de state e da role OIDC descri
 - [x] Ativar e validar Cognito em DEV
 - [x] Implementar e testar localmente a integração EventBridge/SQS
 - [x] Ativar e validar EventBridge/SQS em DEV
+- [x] Endurecer e validar as cinco imagens Docker sem vulnerabilidades detectadas
+- [x] Preparar observabilidade, DLQs e controles de segurança no Terraform
+- [x] Aplicar e validar observabilidade e segurança em DEV
 - [ ] Integrar o envio real de e-mail com SES
-- [ ] Refinar observabilidade e segurança
 - [ ] Gravar vídeo final

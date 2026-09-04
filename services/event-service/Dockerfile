@@ -1,7 +1,9 @@
 FROM node:22-alpine
+RUN apk upgrade --no-cache libcrypto3 libssl3
 WORKDIR /app
 COPY services/event-service/package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev \
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 COPY --chown=node:node services/shared ./services/shared
 COPY --chown=node:node services/event-service/server.js ./services/event-service/server.js
 ENV NODE_ENV=production

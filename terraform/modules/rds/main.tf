@@ -30,6 +30,7 @@ resource "aws_db_instance" "this" {
   allocated_storage       = 20
   max_allocated_storage   = 50
   storage_type            = "gp3"
+  storage_encrypted       = var.storage_encrypted
   db_name                 = "events"
   username                = "app"
   password                = random_password.db.result
@@ -39,4 +40,5 @@ resource "aws_db_instance" "this" {
   skip_final_snapshot     = true
   deletion_protection     = false
   backup_retention_period = 1
+  copy_tags_to_snapshot   = true
 }

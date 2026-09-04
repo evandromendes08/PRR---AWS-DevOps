@@ -28,3 +28,4 @@ output "registration_queue_url" {
 
 output "frontend_distribution_domain" { value = module.frontend.distribution_domain_name }
 output "frontend_distribution_id" { value = module.frontend.distribution_id }
+output "cloudwatch_dashboard_name" { value = module.observability.dashboard_name }

@@ -155,6 +155,13 @@ resource "aws_ecs_service" "service" {
   desired_count   = var.desired_count
   launch_type     = "FARGATE"
 
+  health_check_grace_period_seconds = 30
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
   network_configuration {
     subnets          = var.subnet_ids
     security_groups  = [var.security_group_id]

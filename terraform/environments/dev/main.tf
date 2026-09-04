@@ -29,6 +29,9 @@ module "database" {
   project_name      = local.resource_prefix
   subnet_ids        = module.vpc.private_subnet_ids
   security_group_id = module.vpc.database_security_group_id
+  # The existing DEV instance predates explicit encryption. Keep it in place to
+  # avoid a destructive replacement; newly created PROD instances are encrypted.
+  storage_encrypted = false
 }
 
 module "alb" {
@@ -85,6 +88,14 @@ module "frontend" {
 
   project_name = local.resource_prefix
   alb_dns_name = module.alb.dns_name
+}
+
+module "observability" {
+  source = "../../modules/observability"
+
+  project_name             = local.resource_prefix
+  services                 = toset(keys(local.services))
+  load_balancer_arn_suffix = module.alb.arn_suffix
 }
 
 output "alb_dns_name" {

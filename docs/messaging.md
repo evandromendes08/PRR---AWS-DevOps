@@ -7,6 +7,8 @@ O `payment-service` publica eventos no barramento de domínio quando um pagament
 
 Cada consumidor exclui a mensagem somente depois do processamento bem-sucedido. A notificação usa o identificador do evento EventBridge como chave idempotente, evitando duplicação quando o SQS redeliver uma mensagem.
 
+O Terraform associa uma DLQ exclusiva a cada fila. Após cinco recebimentos sem processamento bem-sucedido, a mensagem é movida para a DLQ e preservada por 14 dias. A política de redrive permite somente a respectiva fila de origem, e um alarme CloudWatch detecta qualquer mensagem disponível na DLQ.
+
 ## Configuração dos containers
 
 | Variável | Serviço | Descrição |
@@ -36,5 +38,5 @@ O usuário Cognito temporário foi removido ao final, os três serviços permane
 ## Limitações conhecidas
 
 - O envio de e-mail por SES ainda não está ativo; a notificação permanece com status `QUEUED`.
-- As filas ainda não possuem DLQ nem alarme de mensagens não processadas.
+- Os alarmes existem sem ação SNS; a consulta ocorre pelo dashboard/console até que um canal de notificação seja aprovado.
 - Para uma carga de produção, a gravação do pagamento e a publicação devem adotar o padrão transactional outbox.
