@@ -27,6 +27,20 @@ resource "aws_iam_role_policy_attachment" "execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+resource "aws_iam_role_policy" "database_secret" {
+  name = "database-secret-read"
+  role = aws_iam_role.execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "secretsmanager:GetSecretValue"
+      Resource = var.database_secret_arn
+    }]
+  })
+}
+
 resource "aws_ecs_task_definition" "service" {
   for_each = var.services
 
@@ -45,11 +59,22 @@ resource "aws_ecs_task_definition" "service" {
       containerPort = each.value.port
       protocol      = "tcp"
     }]
+    environment = [
+      { name = "DB_ENABLED", value = "true" },
+      { name = "DB_HOST", value = var.database_host },
+      { name = "DB_PORT", value = "5432" },
+      { name = "DB_NAME", value = var.database_name },
+      { name = "DB_SSL", value = "true" }
+    ]
+    secrets = [
+      { name = "DB_USER", valueFrom = "${var.database_secret_arn}:username::" },
+      { name = "DB_PASSWORD", valueFrom = "${var.database_secret_arn}:password::" }
+    ]
     logConfiguration = {
       logDriver = "awslogs"
       options = {
         awslogs-group         = aws_cloudwatch_log_group.service[each.key].name
-        awslogs-region        = "us-east-1"
+        awslogs-region        = var.aws_region
         awslogs-stream-prefix = "ecs"
       }
     }
@@ -75,9 +100,5 @@ resource "aws_ecs_service" "service" {
     target_group_arn = var.target_group_arns[each.key]
     container_name   = each.key
     container_port   = each.value.port
-  }
-
-  lifecycle {
-    ignore_changes = [task_definition]
   }
 }

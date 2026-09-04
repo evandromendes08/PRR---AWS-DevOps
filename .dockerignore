@@ -6,6 +6,17 @@
 # Documentation
 README.md
 LICENSE
+PROJECT_CONTEXT.md
+AGENTS.md
+architecture/
+docs/
+
+# Non-application project files
+terraform/
+frontend/
+devops/
+scripts/
+docker-compose.yml
 
 # OS
 .DS_Store

@@ -1,26 +1,53 @@
+x-app: &app
+  depends_on:
+    postgres:
+      condition: service_healthy
+  environment:
+    DB_ENABLED: "true"
+    DB_HOST: postgres
+    DB_PORT: "5432"
+    DB_NAME: events
+    DB_USER: events
+    DB_PASSWORD: events_dev
+
 services:
   event-service:
-    build: ./services/event-service
+    <<: *app
+    build:
+      context: .
+      dockerfile: services/event-service/Dockerfile
     ports:
       - "3001:3000"
 
   ticket-service:
-    build: ./services/ticket-service
+    <<: *app
+    build:
+      context: .
+      dockerfile: services/ticket-service/Dockerfile
     ports:
       - "3002:3000"
 
   registration-service:
-    build: ./services/registration-service
+    <<: *app
+    build:
+      context: .
+      dockerfile: services/registration-service/Dockerfile
     ports:
       - "3003:3000"
 
   payment-service:
-    build: ./services/payment-service
+    <<: *app
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
     ports:
       - "3004:3000"
 
   notification-service:
-    build: ./services/notification-service
+    <<: *app
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
     ports:
       - "3005:3000"
 
@@ -49,7 +76,7 @@ services:
       POSTGRES_USER: events
       POSTGRES_PASSWORD: events_dev
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

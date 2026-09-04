@@ -44,14 +44,18 @@ module "alb" {
 module "ecs" {
   source = "../../modules/ecs"
 
-  project_name      = local.resource_prefix
-  subnet_ids        = module.vpc.public_subnet_ids
-  security_group_id = module.vpc.ecs_security_group_id
-  service_repos     = module.ecr.repository_urls
-  services          = local.services
-  target_group_arns = module.alb.target_group_arns
-  desired_count     = var.ecs_desired_count
-  image_tag         = var.ecs_image_tag
+  project_name        = local.resource_prefix
+  subnet_ids          = module.vpc.public_subnet_ids
+  security_group_id   = module.vpc.ecs_security_group_id
+  service_repos       = module.ecr.repository_urls
+  services            = local.services
+  target_group_arns   = module.alb.target_group_arns
+  desired_count       = var.ecs_desired_count
+  image_tag           = var.ecs_image_tag
+  aws_region          = var.aws_region
+  database_host       = module.database.endpoint
+  database_name       = "events"
+  database_secret_arn = module.database.secret_arn
 }
 
 # GitHub OIDC is account-wide and is managed once from the dev environment.

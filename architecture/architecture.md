@@ -108,7 +108,7 @@ O CloudFront entrega o frontend e também encaminha `/api/*` para o ALB. Assim, 
 ## Evolução futura
 
 - Implementar a regra EventBridge → SQS e o consumidor Lambda → SES representados na arquitetura alvo.
-- Persistir o domínio dos microsserviços no RDS e consumir credenciais via Secrets Manager.
+- Evoluir as migrações de banco para uma ferramenta versionada antes de uso em produção.
 - Validar tokens Cognito na entrada da aplicação.
 - API Gateway na frente do ALB caso requisitos de gerenciamento de APIs aumentem.
 - WAF associado ao CloudFront.

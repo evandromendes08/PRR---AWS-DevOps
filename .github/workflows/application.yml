@@ -26,7 +26,17 @@ env:
   CLOUDFRONT_DISTRIBUTION_ID: E1T6V1XAPXO14Z
 
 jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test services with PostgreSQL
+        run: bash scripts/test-services.sh
+
   build-deploy:
+    needs: integration-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -47,13 +57,17 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       - name: Validate service syntax
-        run: node --check "services/${{ matrix.service }}-service/server.js"
+        run: |
+          node --check "services/${{ matrix.service }}-service/server.js"
+          node --check services/shared/database.js
+          node --check services/shared/http.js
 
       - name: Test container locally
         run: |
           docker build \
             --tag "local/${{ matrix.service }}-service:test" \
-            "services/${{ matrix.service }}-service"
+            --file "services/${{ matrix.service }}-service/Dockerfile" \
+            .
           container_id=$(docker run --detach "local/${{ matrix.service }}-service:test")
           trap 'docker rm --force "${container_id}" >/dev/null' EXIT
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
@@ -75,7 +89,8 @@ jobs:
             --tag "${REGISTRY}/${ECR_PREFIX}/${{ matrix.service }}-service:${GITHUB_SHA}" \
             --tag "${REGISTRY}/${ECR_PREFIX}/${{ matrix.service }}-service:latest" \
             --push \
-            "services/${{ matrix.service }}-service"
+            --file "services/${{ matrix.service }}-service/Dockerfile" \
+            .
 
       - name: Redeploy ECS service
         run: |

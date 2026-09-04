@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT_NAME="prr-integration-test"
+export POSTGRES_PORT="${POSTGRES_PORT:-15432}"
+
+cleanup() {
+  docker compose -p "${PROJECT_NAME}" down -v --remove-orphans >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+docker compose -p "${PROJECT_NAME}" up -d --build \
+  postgres event-service ticket-service registration-service payment-service notification-service
+
+for port in 3001 3002 3003 3004 3005; do
+  ready=false
+  for _ in {1..30}; do
+    health="$(curl -fsS "http://127.0.0.1:${port}/health" 2>/dev/null || true)"
+    if HEALTH_PAYLOAD="${health}" node -e '
+      const health = JSON.parse(process.env.HEALTH_PAYLOAD || "{}");
+      process.exit(health.status === "ok" && health.database?.status === "ok" ? 0 : 1);
+    '; then
+      ready=true
+      break
+    fi
+    sleep 1
+  done
+  if [[ "${ready}" != "true" ]]; then
+    docker compose -p "${PROJECT_NAME}" logs --no-color --tail=100
+    echo "Service on port ${port} did not become healthy" >&2
+    exit 1
+  fi
+done
+
+invalid_json_code="$(curl -sS -o /dev/null -w '%{http_code}' -X POST \
+  -H 'content-type: application/json' -d '{invalid' \
+  http://127.0.0.1:3001/api/events)"
+invalid_quantity_code="$(curl -sS -o /dev/null -w '%{http_code}' -X POST \
+  -H 'content-type: application/json' -d '{"quantity":0}' \
+  http://127.0.0.1:3002/api/tickets/reserve)"
+[[ "${invalid_json_code}" == "400" ]]
+[[ "${invalid_quantity_code}" == "422" ]]
+
+event="$(curl -fsS -X POST -H 'content-type: application/json' \
+  -d '{"name":"Integration Test","city":"São Paulo","available":1}' \
+  http://127.0.0.1:3001/api/events)"
+event_id="$(EVENT_PAYLOAD="${event}" node -e '
+  process.stdout.write(JSON.parse(process.env.EVENT_PAYLOAD).id);
+')"
+
+availability="$(curl -fsS "http://127.0.0.1:3002/api/tickets/availability?eventId=${event_id}")"
+AVAILABILITY_PAYLOAD="${availability}" node -e '
+  const stock = JSON.parse(process.env.AVAILABILITY_PAYLOAD);
+  if (stock.available !== 1 || stock.sold !== 0) process.exit(1);
+'
+
+temp_dir="$(mktemp -d)"
+curl -sS -o "${temp_dir}/response-a" -w '%{http_code}' -X POST \
+  -H 'content-type: application/json' \
+  -d "{\"eventId\":\"${event_id}\",\"quantity\":1}" \
+  http://127.0.0.1:3002/api/tickets/reserve >"${temp_dir}/code-a" &
+pid_a=$!
+curl -sS -o "${temp_dir}/response-b" -w '%{http_code}' -X POST \
+  -H 'content-type: application/json' \
+  -d "{\"eventId\":\"${event_id}\",\"quantity\":1}" \
+  http://127.0.0.1:3002/api/tickets/reserve >"${temp_dir}/code-b" &
+pid_b=$!
+wait "${pid_a}" "${pid_b}"
+codes="$(sort "${temp_dir}/code-a" "${temp_dir}/code-b" | tr '\n' ' ')"
+if [[ "${codes}" != "201 409 " ]]; then
+  echo "Expected concurrent reservation statuses 201 and 409; received ${codes}" >&2
+  exit 1
+fi
+rm -f "${temp_dir}/response-a" "${temp_dir}/response-b" "${temp_dir}/code-a" "${temp_dir}/code-b"
+rmdir "${temp_dir}"
+
+registration="$(curl -fsS -X POST -H 'content-type: application/json' \
+  -d "{\"eventId\":\"${event_id}\",\"participant\":\"Integration Test\"}" \
+  http://127.0.0.1:3003/api/registrations)"
+registration_id="$(REGISTRATION_PAYLOAD="${registration}" node -e '
+  process.stdout.write(JSON.parse(process.env.REGISTRATION_PAYLOAD).id);
+')"
+
+docker compose -p "${PROJECT_NAME}" restart registration-service >/dev/null
+for _ in {1..10}; do
+  curl -fsS http://127.0.0.1:3003/health >/dev/null 2>&1 && break
+  sleep 1
+done
+registrations="$(curl -fsS http://127.0.0.1:3003/api/registrations)"
+REGISTRATIONS_PAYLOAD="${registrations}" EXPECTED_ID="${registration_id}" node -e '
+  const registrations = JSON.parse(process.env.REGISTRATIONS_PAYLOAD);
+  if (!registrations.items.some(item => item.id === process.env.EXPECTED_ID)) process.exit(1);
+'
+
+curl -fsS -X POST -H 'content-type: application/json' \
+  -d "{\"registrationId\":\"${registration_id}\",\"amount\":75,\"approve\":true}" \
+  http://127.0.0.1:3004/api/payments >/dev/null
+curl -fsS -X POST -H 'content-type: application/json' \
+  -d '{"channel":"email","message":"Integration Test"}' \
+  http://127.0.0.1:3005/api/notifications >/dev/null
+
+counts="$(docker compose -p "${PROJECT_NAME}" exec -T postgres psql -U events -d events -Atc \
+  "SELECT (SELECT count(*) FROM events),(SELECT count(*) FROM tickets),(SELECT count(*) FROM registrations),(SELECT count(*) FROM payments),(SELECT count(*) FROM notifications);")"
+
+echo "Integration tests passed: health=5/5 validation=2/2 reservations='${codes}' table_counts=${counts}"

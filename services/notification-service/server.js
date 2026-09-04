@@ -1,103 +1,78 @@
 const http = require("node:http");
+const { randomUUID } = require("node:crypto");
 const { URL } = require("node:url");
+const db = require("../shared/database");
+const { json, body, apiPath } = require("../shared/http");
 
 const port = Number(process.env.PORT || 3000);
-const service = process.env.SERVICE_NAME || "notification-service";
+const service = "notification-service";
 
-const state = {
-  events: [
-    { id: "evt-001", name: "AWS DevOps Experience", city: "Brasília", available: 100 }
-  ],
-  tickets: { "evt-001": { available: 100, sold: 0 } },
-  registrations: [],
-  payments: []
-};
-
-function json(res, status, payload) {
-  res.writeHead(status, {
-    "content-type": "application/json; charset=utf-8",
-    "access-control-allow-origin": "*",
-    "access-control-allow-headers": "content-type,authorization",
-    "access-control-allow-methods": "GET,POST,OPTIONS"
-  });
-  res.end(JSON.stringify(payload));
-}
-
-function body(req) {
-  return new Promise((resolve, reject) => {
-    let data = "";
-    req.on("data", chunk => data += chunk);
-    req.on("end", () => {
-      try { resolve(data ? JSON.parse(data) : {}); }
-      catch (err) { reject(err); }
-    });
-    req.on("error", reject);
-  });
-}
+const schema = `
+  CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY,
+    channel TEXT NOT NULL,
+    message TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('QUEUED', 'SENT', 'FAILED')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+`;
 
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return json(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host}`);
-  const path = url.pathname.startsWith("/api/") ? url.pathname.slice(4) : url.pathname;
+  const path = apiPath(url.pathname);
 
-  if (path === "/health") return json(res, 200, { service, status: "ok" });
+  if (path === "/health") {
+    try {
+      return json(res, 200, { service, status: "ok", database: await db.health() });
+    } catch {
+      return json(res, 503, { service, status: "unhealthy", database: { enabled: true, status: "error" } });
+    }
+  }
 
   try {
-    if (service === "event-service" && req.method === "GET" && url.pathname === "/events") {
-      return json(res, 200, { items: state.events });
-    }
-
-    if (service === "event-service" && req.method === "POST" && url.pathname === "/events") {
+    if (req.method === "POST" && path === "/notifications") {
       const input = await body(req);
-      const event = { id: `evt-${Date.now()}`, name: input.name || "Novo evento", city: input.city || "Brasília", available: Number(input.available || 50) };
-      state.events.push(event);
-      state.tickets[event.id] = { available: event.available, sold: 0 };
-      return json(res, 201, event);
-    }
-
-    if (service === "ticket-service" && req.method === "GET" && url.pathname === "/tickets/availability") {
-      const eventId = url.searchParams.get("eventId") || "evt-001";
-      return json(res, 200, { eventId, ...(state.tickets[eventId] || { available: 0, sold: 0 }) });
-    }
-
-    if (service === "ticket-service" && req.method === "POST" && url.pathname === "/tickets/reserve") {
-      const input = await body(req);
-      const eventId = input.eventId || "evt-001";
-      const quantity = Math.max(1, Number(input.quantity || 1));
-      const stock = state.tickets[eventId];
-      if (!stock || stock.available < quantity) return json(res, 409, { error: "Ingressos indisponíveis" });
-      stock.available -= quantity; stock.sold += quantity;
-      return json(res, 201, { reservationId: `res-${Date.now()}`, eventId, quantity, status: "RESERVED" });
-    }
-
-    if (service === "registration-service" && req.method === "POST" && url.pathname === "/registrations") {
-      const input = await body(req);
-      const registration = { id: `reg-${Date.now()}`, eventId: input.eventId || "evt-001", participant: input.participant || "Participante Demo", status: "PENDING_PAYMENT" };
-      state.registrations.push(registration);
-      return json(res, 201, registration);
-    }
-
-    if (service === "registration-service" && req.method === "GET" && url.pathname === "/registrations") {
-      return json(res, 200, { items: state.registrations });
-    }
-
-    if (service === "payment-service" && req.method === "POST" && url.pathname === "/payments") {
-      const input = await body(req);
-      const approved = input.approve !== false;
-      const payment = { id: `pay-${Date.now()}`, registrationId: input.registrationId || "reg-demo", amount: Number(input.amount || 100), status: approved ? "APPROVED" : "DECLINED" };
-      state.payments.push(payment);
-      return json(res, 201, payment);
-    }
-
-    if (service === "notification-service" && req.method === "POST" && path === "/notifications") {
-      const input = await body(req);
-      return json(res, 202, { id: `not-${Date.now()}`, channel: input.channel || "email", status: "QUEUED", message: input.message || "Notificação de demonstração" });
+      const notification = {
+        id: `not-${randomUUID()}`,
+        channel: String(input.channel || "email"),
+        status: "QUEUED",
+        message: String(input.message || "Notificação de demonstração")
+      };
+      if (db.enabled) {
+        await db.query(
+          "INSERT INTO notifications (id, channel, message, status) VALUES ($1, $2, $3, $4)",
+          [notification.id, notification.channel, notification.message, notification.status]
+        );
+      }
+      return json(res, 202, notification);
     }
 
     return json(res, 404, { error: "Route not found", service, path: url.pathname });
-  } catch (err) {
-    return json(res, 400, { error: "Invalid request", detail: err.message });
+  } catch (error) {
+    console.error(JSON.stringify({ service, error: error.message, path: url.pathname }));
+    const status = error.statusCode || 500;
+    return json(res, status, { error: status === 500 ? "Internal server error" : error.message });
   }
 });
 
-server.listen(port, "0.0.0.0", () => console.log(`${service} listening on ${port}`));
+async function start() {
+  await db.initialize(schema);
+  server.listen(port, "0.0.0.0", () => {
+    console.log(JSON.stringify({ service, message: "listening", port, database: db.enabled }));
+  });
+}
+
+async function shutdown() {
+  server.close(async () => {
+    await db.close();
+    process.exit(0);
+  });
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
+start().catch(error => {
+  console.error(JSON.stringify({ service, error: error.message, message: "startup failed" }));
+  process.exit(1);
+});

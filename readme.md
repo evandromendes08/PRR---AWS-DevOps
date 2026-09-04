@@ -48,9 +48,9 @@ services/
 └── notification-service/
 ```
 
-Cada serviço possui um servidor HTTP mínimo, endpoint `/health` e endpoints demonstrativos do domínio.
+Cada serviço possui endpoint `/health`, rotas demonstrativas do domínio e suporte a PostgreSQL.
 
-Na implementação atual, os dados dos serviços são mantidos em memória. A integração efetiva com RDS, Cognito, EventBridge, SQS e SES permanece como evolução do domínio.
+Com `DB_ENABLED=true`, os dados são persistidos no PostgreSQL; sem essa variável, os serviços utilizam memória para testes rápidos. A integração com Cognito, EventBridge, SQS e SES permanece como evolução do domínio.
 
 ## Fluxo demonstrativo
 
@@ -110,6 +110,7 @@ Os workflows estão em `.github/workflows/`.
 
 ### Aplicação
 
+- Teste integrado dos cinco serviços com PostgreSQL;
 - Build das imagens Docker;
 - Validação das imagens em `linux/amd64`;
 - Push para ECR;
@@ -133,6 +134,12 @@ Executar:
 
 ```bash
 docker compose up --build
+```
+
+O Compose habilita PostgreSQL para os cinco serviços. Para executar o cenário automatizado de persistência e concorrência:
+
+```bash
+bash scripts/test-services.sh
 ```
 
 Serviços locais:
@@ -184,7 +191,9 @@ A primeira execução exige o bootstrap do bucket de state e da role OIDC descri
 - [x] Publicar frontend no S3/CloudFront
 - [x] Validar fluxo HTTP frontend → CloudFront → ALB → ECS
 - [x] Preparar workflows GitHub Actions
-- [ ] Validar os workflows no GitHub após o push
-- [ ] Integrar os serviços aos recursos gerenciados da AWS
+- [x] Validar os workflows no GitHub após o push
+- [x] Implementar e testar persistência PostgreSQL local
+- [x] Ativar e validar a integração RDS/Secrets Manager nas task definitions DEV
+- [ ] Integrar Cognito, EventBridge, SQS e SES à aplicação
 - [ ] Refinar observabilidade e segurança
 - [ ] Gravar vídeo final

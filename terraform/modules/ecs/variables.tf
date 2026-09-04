@@ -36,3 +36,24 @@ variable "image_tag" {
   type        = string
   default     = "latest"
 }
+
+variable "aws_region" {
+  description = "AWS region used by the ECS log driver."
+  type        = string
+}
+
+variable "database_host" {
+  description = "PostgreSQL endpoint reachable from the ECS tasks."
+  type        = string
+}
+
+variable "database_name" {
+  description = "PostgreSQL database name."
+  type        = string
+  default     = "events"
+}
+
+variable "database_secret_arn" {
+  description = "Secrets Manager ARN containing the database username and password keys."
+  type        = string
+}

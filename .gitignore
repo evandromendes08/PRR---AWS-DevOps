@@ -67,6 +67,7 @@ crash.log
 crash.*.log
 *.tfplan
 *.plan
+terraform/environments/*/tfplan
 .terraformrc
 terraform.rc
 

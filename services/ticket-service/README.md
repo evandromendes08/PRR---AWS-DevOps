@@ -2,4 +2,6 @@
 
 Microserviço demonstrativo do Sistema de Gerenciamento de Eventos.
 
-Endpoints principais: `/health` e rotas específicas do domínio.
+Endpoints: `GET /health`, `GET /tickets/availability` e `POST /tickets/reserve`.
+
+Reservas PostgreSQL usam locking de linha para impedir overselling.
