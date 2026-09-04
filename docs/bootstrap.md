@@ -33,19 +33,19 @@ terraform plan
 terraform apply
 ```
 
-Após a primeira execução, copie o output `github_actions_role_arn` para o Secret do GitHub:
-
-`AWS_GITHUB_ACTIONS_ROLE_ARN`
+Após a primeira execução, confirme que o output `github_actions_role_arn` corresponde ao valor `AWS_ROLE_ARN` configurado nos workflows.
 
 ## 4. Atenção sobre permissões
 
 O role de GitHub Actions da primeira versão usa uma política ampla para simplificar o projeto acadêmico e permitir que o Terraform crie os recursos necessários. Antes de utilizar esta solução em produção, essa política deve ser substituída por permissões específicas por serviço e por ambiente.
 
-## 5. Secrets do GitHub
+## 5. Configuração do GitHub Actions
 
-Crie estes secrets no repositório:
+O ARN da role OIDC e o nome do bucket não são credenciais secretas e ficam configurados como variáveis de ambiente nos workflows:
 
-- `AWS_GITHUB_ACTIONS_ROLE_ARN`: ARN do role criado pelo Terraform.
+- `AWS_ROLE_ARN`: ARN do role criado pelo Terraform.
 - `TF_STATE_BUCKET`: nome do bucket S3 usado pelo state remoto.
+
+Não configure access key ou secret access key. A autenticação deve continuar usando OIDC.
 
 O workflow de PR executa `plan`; o workflow em `main` executa `apply` e, na sequência, publica imagens no ECR, atualiza o ECS e publica o frontend.

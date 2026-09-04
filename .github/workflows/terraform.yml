@@ -22,6 +22,8 @@ concurrency:
 
 env:
   AWS_REGION: us-east-1
+  AWS_ROLE_ARN: arn:aws:iam::314146318271:role/event-management-github-actions
+  TF_STATE_BUCKET: prr-aws-devops-tfstate-314146318271-us-east-1
   TF_IN_AUTOMATION: "true"
   TF_WORKING_DIR: terraform/environments/dev
 
@@ -37,7 +39,7 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v5
         with:
-          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Check formatting
@@ -45,8 +47,6 @@ jobs:
 
       - name: Initialize backend
         working-directory: ${{ env.TF_WORKING_DIR }}
-        env:
-          TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
         run: |
           terraform init -input=false \
             -backend-config="bucket=${TF_STATE_BUCKET}" \
