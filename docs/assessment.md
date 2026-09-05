@@ -5,11 +5,11 @@
 | Arquitetura completa | `architecture/architecture.md` + diagrama |
 | Código IaC | `terraform/` modularizado |
 | CI/CD | `.github/workflows/terraform.yml` e `application.yml` |
-| AWS provisionada | VPC, ALB, ECS/Fargate, ECR, RDS, Cognito, SQS, EventBridge, Secrets Manager, S3 e CloudFront |
+| AWS provisionada | VPC, ALB, ECS/Fargate, ECR, RDS, Cognito, SQS, EventBridge, SES, Secrets Manager, S3 e CloudFront |
 | Fluxo assíncrono | Pagamento → EventBridge → duas filas SQS → serviços de inscrições e notificações |
 | Observabilidade | Dashboard CloudWatch para ECS, ALB, RDS e SQS; dez alarmes operacionais |
 | Resiliência | DLQ por consumidor e circuit breaker com rollback nos serviços ECS |
 | Segurança | Cognito, Secrets Manager, containers não root, cabeçalhos CloudFront e ALB restrito ao CloudFront |
-| E-mail transacional | Código e Terraform SES preparados; ativação em DEV ocorre após a verificação da identidade |
+| E-mail transacional | Identidade SES verificada e fluxo EventBridge → SQS → notification-service → SES validado em DEV |
 | Deploy | Workflows preparados com OIDC, Terraform Apply, ECR/ECS e S3/CloudFront |
 | Demonstração | Microserviços em `services/` e frontend em `frontend/` |

@@ -3,7 +3,7 @@
 O `payment-service` publica eventos no barramento de domínio quando um pagamento simulado é criado. A regra `PaymentApproved` distribui cada aprovação para duas filas independentes:
 
 - a fila de inscrições é consumida pelo `registration-service`, que altera a inscrição para `PAID`;
-- a fila de notificações é consumida pelo `notification-service`, que persiste uma notificação `QUEUED`.
+- a fila de notificações é consumida pelo `notification-service`, que envia o e-mail por SES e persiste a notificação como `SENT`.
 
 Cada consumidor exclui a mensagem somente depois do processamento bem-sucedido. A notificação usa o identificador do evento EventBridge como chave idempotente, evitando duplicação quando o SQS redeliver uma mensagem.
 
@@ -38,8 +38,9 @@ Em 4 de setembro de 2026, o fluxo foi validado ponta a ponta pela URL do CloudFr
 
 O usuário Cognito temporário foi removido ao final, os três serviços permaneceram com uma task saudável e o plano Terraform posterior não apresentou mudanças.
 
+Em 5 de setembro de 2026, a identidade SES foi verificada e o envio real também foi validado. Um evento `PaymentApproved` de demonstração atravessou EventBridge e SQS; o `notification-service` registrou o `MessageId` retornado pelo SES e o status `SENT`. A fila terminou sem mensagens disponíveis ou em processamento.
+
 ## Limitações conhecidas
 
-- A identidade SES de demonstração foi verificada em DEV. O envio entra em operação após aplicar a permissão mínima `ses:SendEmail`, atualizar a task definition e publicar a imagem do `notification-service`.
 - Os alarmes existem sem ação SNS; a consulta ocorre pelo dashboard/console até que um canal de notificação seja aprovado.
 - Para uma carga de produção, a gravação do pagamento e a publicação devem adotar o padrão transactional outbox.

@@ -34,7 +34,7 @@ digraph G {
   sqs_notif [label="Amazon SQS\nNotification Queue", fillcolor="#fef3c7"];
   dlq_reg [label="Amazon SQS\nRegistration DLQ", fillcolor="#fee2e2"];
   dlq_notif [label="Amazon SQS\nNotification DLQ", fillcolor="#fee2e2"];
-  ses [label="Amazon SES\nE-mail (futuro)", fillcolor="#fee2e2"];
+  ses [label="Amazon SES\nE-mail transacional", fillcolor="#dcfce7"];
   ecr [label="Amazon ECR\nDocker Images", fillcolor="#e0e7ff"];
   cw [label="Amazon CloudWatch\nLogs / Dashboard / Alarms", fillcolor="#ecfccb"];
   secrets [label="AWS Secrets Manager", fillcolor="#fce7f3"];
@@ -62,7 +62,7 @@ digraph G {
   sqs_notif -> dlq_notif [label="5 failures", style=dashed];
   dlq_reg -> cw [label="alarm", style=dashed];
   dlq_notif -> cw [label="alarm", style=dashed];
-  notif -> ses [label="e-mail", style=dashed];
+  notif -> ses [label="ses:SendEmail"];
   ecr -> ecs [label="pull"];
   ecs -> cw [style=dashed];
   ecs -> secrets [style=dashed];

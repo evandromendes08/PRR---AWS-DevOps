@@ -205,5 +205,5 @@ A primeira execução exige o bootstrap do bucket de state e da role OIDC descri
 - [x] Endurecer e validar as cinco imagens Docker sem vulnerabilidades detectadas
 - [x] Preparar observabilidade, DLQs e controles de segurança no Terraform
 - [x] Aplicar e validar observabilidade e segurança em DEV
-- [ ] Integrar o envio real de e-mail com SES
+- [x] Integrar e validar o envio real de e-mail com SES
 - [ ] Gravar vídeo final

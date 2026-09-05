@@ -21,7 +21,7 @@
 | Dados | Amazon RDS PostgreSQL |
 | Auth | Amazon Cognito |
 | Assíncrono | Amazon EventBridge + Amazon SQS |
-| Notificações | notification-service consumindo SQS; Amazon SES como evolução |
+| Notificações | notification-service consumindo SQS e enviando por Amazon SES |
 | Secrets | AWS Secrets Manager |
 | Logs | Amazon CloudWatch |
 | Registro de imagens | Amazon ECR |
@@ -61,7 +61,10 @@ SQS Registration Queue     SQS Notification Queue
       |                           |
       v                           v
 Registration Service       Notification Service
-(status PAID)              (registro QUEUED)
+(status PAID)              (registro SENT)
+                                  |
+                                  v
+                              Amazon SES
 ```
 
 ## Rede
@@ -86,6 +89,7 @@ A escolha de não utilizar NAT Gateway nesta primeira versão reduz custo recorr
 - Secrets Manager para credenciais do banco.
 - Cabeçalhos HSTS, `X-Frame-Options`, `X-Content-Type-Options`, Referrer Policy e XSS Protection aplicados pelo CloudFront.
 - Containers executados como usuário não root, com pacotes criptográficos atualizados e sem npm no runtime.
+- Envio SES limitado à identidade verificada pela task role do serviço de notificações.
 - IAM com princípio do menor privilégio como objetivo de evolução.
 - OIDC para autenticação do GitHub Actions na AWS, evitando chaves AWS de longa duração.
 
@@ -110,7 +114,7 @@ O CloudFront entrega o frontend e também encaminha `/api/*` para o ALB. Assim, 
 
 ## Evolução futura
 
-- Integrar Amazon SES ao `notification-service` para o envio real de e-mail; avaliar Lambda apenas se houver benefício operacional.
+- Avaliar Lambda para notificações somente se houver benefício operacional além do consumidor ECS atual.
 - Evoluir as migrações de banco para uma ferramenta versionada antes de uso em produção.
 - Conectar os alarmes CloudWatch a um canal de notificação SNS quando houver destinatário aprovado.
 - API Gateway na frente do ALB caso requisitos de gerenciamento de APIs aumentem.
