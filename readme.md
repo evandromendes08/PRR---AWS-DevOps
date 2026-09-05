@@ -94,6 +94,7 @@ terraform/
     ├── messaging/
     ├── observability/
     ├── rds/
+    ├── ses/
     └── vpc/
 ```
 

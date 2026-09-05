@@ -30,3 +30,15 @@ variable "ecs_image_tag" {
   type        = string
   default     = "latest"
 }
+
+variable "ses_email_address" {
+  description = "SES sender and sandbox recipient used by the DEV demonstration."
+  type        = string
+  default     = "evandromende@gmail.com"
+}
+
+variable "ses_enabled" {
+  description = "Enables SES delivery only after the DEV email identity is verified."
+  type        = bool
+  default     = false
+}

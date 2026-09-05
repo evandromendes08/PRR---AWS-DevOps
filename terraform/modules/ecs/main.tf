@@ -94,8 +94,37 @@ resource "aws_iam_role_policy" "queue_consumer" {
   })
 }
 
+resource "aws_iam_role_policy" "notification_email" {
+  count = var.ses_enabled ? 1 : 0
+
+  name = "ses-send-email"
+  role = aws_iam_role.task["notification"].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "ses:SendEmail"
+      Resource = var.ses_identity_arn
+    }]
+  })
+}
+
 resource "aws_ecs_task_definition" "service" {
   for_each = var.services
+
+  lifecycle {
+    create_before_destroy = true
+
+    precondition {
+      condition = !var.ses_enabled || alltrue([
+        var.ses_identity_arn != "",
+        var.ses_from_email != "",
+        var.ses_to_email != ""
+      ])
+      error_message = "SES identity, sender and recipient must be configured when SES is enabled."
+    }
+  }
 
   family                   = "${var.project_name}-${each.key}"
   requires_compatibilities = ["FARGATE"]
@@ -130,6 +159,10 @@ resource "aws_ecs_task_definition" "service" {
       { name = "MESSAGING_ENABLED", value = "true" },
       { name = "AWS_REGION", value = var.aws_region },
       { name = "SQS_QUEUE_URL", value = var.consumer_queues[each.key].url }
+      ] : [], each.key == "notification" && var.ses_enabled ? [
+      { name = "SES_ENABLED", value = "true" },
+      { name = "SES_FROM_EMAIL", value = var.ses_from_email },
+      { name = "SES_TO_EMAIL", value = var.ses_to_email }
     ] : [])
     secrets = [
       { name = "DB_USER", valueFrom = "${var.database_secret_arn}:username::" },

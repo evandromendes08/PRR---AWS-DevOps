@@ -23,6 +23,14 @@ module "messaging" {
   project_name = local.resource_prefix
 }
 
+# SES email identities are regional/account-wide. DEV owns the identity used by
+# the academic demonstration; delivery is enabled only after email verification.
+module "ses" {
+  source = "../../modules/ses"
+
+  email_address = var.ses_email_address
+}
+
 module "database" {
   source = "../../modules/rds"
 
@@ -63,6 +71,10 @@ module "ecs" {
   cognito_client_id    = module.cognito.client_id
   event_bus_name       = module.messaging.event_bus_name
   event_bus_arn        = module.messaging.event_bus_arn
+  ses_enabled          = var.ses_enabled
+  ses_identity_arn     = module.ses.identity_arn
+  ses_from_email       = module.ses.email_address
+  ses_to_email         = module.ses.email_address
   consumer_queues = {
     registration = {
       arn = module.messaging.registration_queue_arn

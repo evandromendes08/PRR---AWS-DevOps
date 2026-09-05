@@ -10,6 +10,6 @@
 | Observabilidade | Dashboard CloudWatch para ECS, ALB, RDS e SQS; dez alarmes operacionais |
 | Resiliência | DLQ por consumidor e circuit breaker com rollback nos serviços ECS |
 | Segurança | Cognito, Secrets Manager, containers não root, cabeçalhos CloudFront e ALB restrito ao CloudFront |
-| AWS planejada | SES para envio real de notificações; Lambda somente se justificado |
+| E-mail transacional | Código e Terraform SES preparados; ativação em DEV ocorre após a verificação da identidade |
 | Deploy | Workflows preparados com OIDC, Terraform Apply, ECR/ECS e S3/CloudFront |
 | Demonstração | Microserviços em `services/` e frontend em `frontend/` |

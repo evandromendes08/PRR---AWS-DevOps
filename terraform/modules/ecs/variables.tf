@@ -85,3 +85,27 @@ variable "consumer_queues" {
     url = string
   }))
 }
+
+variable "ses_enabled" {
+  description = "Whether notification-service sends PaymentApproved emails through SES."
+  type        = bool
+  default     = false
+}
+
+variable "ses_identity_arn" {
+  description = "SES identity ARN allowed for the notification task role."
+  type        = string
+  default     = ""
+}
+
+variable "ses_from_email" {
+  description = "Verified SES sender used by notification-service."
+  type        = string
+  default     = ""
+}
+
+variable "ses_to_email" {
+  description = "SES demonstration recipients, separated by commas."
+  type        = string
+  default     = ""
+}
