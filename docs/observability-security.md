@@ -14,6 +14,8 @@ Esta etapa mantém a arquitetura e o perfil de baixo custo do projeto. Ela não 
 
 Os alarmes não têm ações SNS nesta fase, evitando criar um tópico sem destinatário definido. O dashboard e os dez alarmes foram dimensionados para a faixa gratuita padrão do CloudWatch, mas a franquia é compartilhada pela conta e deve ser conferida antes de replicar o ambiente.
 
+A role OIDC do GitHub Actions possui apenas as ações CloudWatch necessárias para consultar e gerenciar dashboards, alarmes e suas tags. Não foi concedido `cloudwatch:*` nem `AdministratorAccess`, e a trust policy do repositório permaneceu inalterada.
+
 ## Banco de dados
 
 O módulo RDS habilita criptografia por padrão para novas instâncias, incluindo PROD. O RDS DEV existente não é criptografado e permanece explicitamente com `storage_encrypted = false`, pois habilitar criptografia nele exigiria substituição e migração dos dados. O plano DEV foi verificado para não substituir nem destruir o banco. Tags passam a ser copiadas para snapshots.
