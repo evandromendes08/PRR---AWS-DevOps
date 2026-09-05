@@ -52,6 +52,7 @@ resource "aws_iam_role_policy" "github_deployment" {
         "ses:GetEmailIdentity",
         "ses:CreateEmailIdentity",
         "ses:DeleteEmailIdentity",
+        "ses:ListTagsForResource",
         "ses:TagResource",
         "ses:UntagResource",
         "logs:*",
