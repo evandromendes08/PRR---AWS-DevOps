@@ -40,5 +40,5 @@ variable "ses_email_address" {
 variable "ses_enabled" {
   description = "Enables SES delivery only after the DEV email identity is verified."
   type        = bool
-  default     = false
+  default     = true
 }

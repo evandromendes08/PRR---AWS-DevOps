@@ -40,6 +40,6 @@ O usuário Cognito temporário foi removido ao final, os três serviços permane
 
 ## Limitações conhecidas
 
-- O código de envio SES está implementado e testado com a integração desativada, mas a ativação em DEV depende de verificar uma identidade de e-mail e aplicar a permissão mínima `ses:SendEmail` na task role.
+- A identidade SES de demonstração foi verificada em DEV. O envio entra em operação após aplicar a permissão mínima `ses:SendEmail`, atualizar a task definition e publicar a imagem do `notification-service`.
 - Os alarmes existem sem ação SNS; a consulta ocorre pelo dashboard/console até que um canal de notificação seja aprovado.
 - Para uma carga de produção, a gravação do pagamento e a publicação devem adotar o padrão transactional outbox.
