@@ -40,6 +40,12 @@ for port in 3003 3004 3005; do
   '
 done
 
+notification_health="$(curl -fsS "http://127.0.0.1:3005/health")"
+HEALTH_PAYLOAD="${notification_health}" node -e '
+  const health = JSON.parse(process.env.HEALTH_PAYLOAD);
+  if (health.email?.status !== "disabled") process.exit(1);
+'
+
 auth_container="$(docker compose -p "${PROJECT_NAME}" run --detach --no-deps \
   --publish 127.0.0.1:3010:3000 \
   -e AUTH_ENABLED=true \

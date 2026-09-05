@@ -5,7 +5,7 @@ COPY services/notification-service/package*.json ./
 RUN npm ci --omit=dev \
   && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 COPY --chown=node:node services/shared ./services/shared
-COPY --chown=node:node services/notification-service/server.js ./services/notification-service/server.js
+COPY --chown=node:node services/notification-service/server.js services/notification-service/email.js ./services/notification-service/
 ENV NODE_ENV=production
 EXPOSE 3000
 USER node

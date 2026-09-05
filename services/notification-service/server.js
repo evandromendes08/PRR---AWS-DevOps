@@ -4,6 +4,7 @@ const { URL } = require("node:url");
 const db = require("../shared/database");
 const auth = require("../shared/auth");
 const queue = require("../shared/queue");
+const email = require("./email");
 const { json, body, apiPath } = require("../shared/http");
 
 const port = Number(process.env.PORT || 3000);
@@ -16,9 +17,13 @@ const schema = `
     message TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('QUEUED', 'SENT', 'FAILED')),
     source_event_id TEXT,
+    provider_message_id TEXT,
+    sent_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
   ALTER TABLE notifications ADD COLUMN IF NOT EXISTS source_event_id TEXT;
+  ALTER TABLE notifications ADD COLUMN IF NOT EXISTS provider_message_id TEXT;
+  ALTER TABLE notifications ADD COLUMN IF NOT EXISTS sent_at TIMESTAMPTZ;
   CREATE UNIQUE INDEX IF NOT EXISTS notifications_source_event_id_idx
     ON notifications (source_event_id) WHERE source_event_id IS NOT NULL;
 `;
@@ -29,7 +34,9 @@ function notificationFromRow(row) {
     channel: row.channel,
     message: row.message,
     status: row.status,
-    sourceEventId: row.source_event_id
+    sourceEventId: row.source_event_id,
+    providerMessageId: row.provider_message_id,
+    sentAt: row.sent_at
   };
 }
 
@@ -45,14 +52,47 @@ async function handlePaymentApproved(event) {
   };
 
   if (db.enabled) {
-    await db.query(
+    const inserted = await db.query(
       `INSERT INTO notifications (id, channel, message, status, source_event_id)
        VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (source_event_id) WHERE source_event_id IS NOT NULL DO NOTHING`,
+       ON CONFLICT (source_event_id) WHERE source_event_id IS NOT NULL DO NOTHING
+       RETURNING id, status`,
       [notification.id, notification.channel, notification.message, notification.status, notification.sourceEventId]
     );
+    if (inserted.rowCount === 0) {
+      const existing = await db.query(
+        "SELECT id, status FROM notifications WHERE source_event_id = $1",
+        [notification.sourceEventId]
+      );
+      if (existing.rows[0]?.status === "SENT") {
+        console.log(JSON.stringify({ service, message: "duplicate payment event ignored", sourceEventId: event.id }));
+        return;
+      }
+      notification.id = existing.rows[0]?.id || notification.id;
+    }
   }
-  console.log(JSON.stringify({ service, message: "payment event processed", sourceEventId: event.id }));
+
+  if (email.enabled) {
+    try {
+      const providerMessageId = await email.sendPaymentApproved(detail);
+      notification.status = "SENT";
+      if (db.enabled) {
+        await db.query(
+          `UPDATE notifications
+           SET status = 'SENT', provider_message_id = $2, sent_at = NOW()
+           WHERE id = $1`,
+          [notification.id, providerMessageId]
+        );
+      }
+      console.log(JSON.stringify({ service, message: "email sent", sourceEventId: event.id, providerMessageId }));
+    } catch (error) {
+      if (db.enabled) {
+        await db.query("UPDATE notifications SET status = 'FAILED' WHERE id = $1", [notification.id]);
+      }
+      throw error;
+    }
+  }
+  console.log(JSON.stringify({ service, message: "payment event processed", sourceEventId: event.id, status: notification.status }));
 }
 
 const server = http.createServer(async (req, res) => {
@@ -66,7 +106,8 @@ const server = http.createServer(async (req, res) => {
         service,
         status: "ok",
         database: await db.health(),
-        messaging: queue.health()
+        messaging: queue.health(),
+        email: email.health()
       });
     } catch {
       return json(res, 503, { service, status: "unhealthy", database: { enabled: true, status: "error" } });
@@ -96,7 +137,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && path === "/notifications") {
       if (!db.enabled) return json(res, 200, { items: [] });
       const result = await db.query(
-        `SELECT id, channel, message, status, source_event_id
+        `SELECT id, channel, message, status, source_event_id, provider_message_id, sent_at
          FROM notifications ORDER BY created_at`
       );
       return json(res, 200, { items: result.rows.map(notificationFromRow) });
@@ -119,7 +160,8 @@ async function start() {
       message: "listening",
       port,
       database: db.enabled,
-      messaging: queue.enabled
+      messaging: queue.enabled,
+      email: email.enabled
     }));
   });
 }

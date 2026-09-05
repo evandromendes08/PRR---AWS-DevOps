@@ -23,7 +23,7 @@ A arquitetura alvo utiliza:
 - Amazon Cognito;
 - Amazon EventBridge;
 - Amazon SQS;
-- AWS Lambda e Amazon SES como evolução do envio real de e-mail;
+- Amazon SES para envio real de e-mail; Lambda somente como evolução se houver justificativa;
 - Amazon S3;
 - Amazon CloudFront;
 - AWS Secrets Manager;
@@ -51,7 +51,7 @@ services/
 
 Cada serviço possui endpoint `/health`, rotas demonstrativas do domínio e suporte a PostgreSQL.
 
-Com `DB_ENABLED=true`, os dados são persistidos no PostgreSQL; sem essa variável, os serviços utilizam memória para testes rápidos. Cognito protege as rotas de negócio. O pagamento aprovado é publicado no EventBridge e distribuído para duas filas SQS consumidas pelos serviços de inscrições e notificações. O envio real por SES permanece como evolução.
+Com `DB_ENABLED=true`, os dados são persistidos no PostgreSQL; sem essa variável, os serviços utilizam memória para testes rápidos. Cognito protege as rotas de negócio. O pagamento aprovado é publicado no EventBridge e distribuído para duas filas SQS consumidas pelos serviços de inscrições e notificações. O `notification-service` já possui integração configurável com SES, desativada por padrão até a identidade de e-mail ser verificada em DEV.
 
 ## Fluxo demonstrativo
 

@@ -32,6 +32,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test SES notification logic
+        working-directory: services/notification-service
+        run: |
+          npm ci --ignore-scripts
+          npm test
+
       - name: Test services with PostgreSQL
         run: bash scripts/test-services.sh
 
@@ -64,6 +70,9 @@ jobs:
           node --check services/shared/events.js
           node --check services/shared/http.js
           node --check services/shared/queue.js
+          if [ "${{ matrix.service }}" = "notification" ]; then
+            node --check services/notification-service/email.js
+          fi
 
       - name: Test container locally
         run: |

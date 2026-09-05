@@ -17,10 +17,13 @@ O Terraform associa uma DLQ exclusiva a cada fila. Após cinco recebimentos sem 
 | `AWS_REGION` | payment, registration, notification | Região do barramento e das filas |
 | `EVENT_BUS_NAME` | payment | Barramento que recebe os eventos de pagamento |
 | `SQS_QUEUE_URL` | registration, notification | Fila consumida pelo serviço |
+| `SES_ENABLED` | notification | Ativa o envio real de e-mail quando `true` |
+| `SES_FROM_EMAIL` | notification | Remetente verificado no SES |
+| `SES_TO_EMAIL` | notification | Destinatários de demonstração separados por vírgula |
 
 No ECS, as permissões são fornecidas por task roles distintas e de menor privilégio. O pagamento pode apenas executar `events:PutEvents` no barramento do projeto; cada consumidor pode apenas receber e excluir mensagens de sua própria fila. Não há credenciais AWS estáticas nos containers.
 
-No Docker Compose, `MESSAGING_ENABLED` permanece desativado. Assim, os testes locais não criam recursos externos nem dependem da AWS. A validação completa do fluxo assíncrono ocorre em DEV depois da aplicação do plano Terraform autorizado.
+No Docker Compose, `MESSAGING_ENABLED` e `SES_ENABLED` permanecem desativados. Assim, os testes locais não criam recursos externos nem dependem da AWS. A validação completa do fluxo assíncrono ocorre em DEV depois da aplicação do plano Terraform autorizado.
 
 ## Validação em DEV
 
@@ -37,6 +40,6 @@ O usuário Cognito temporário foi removido ao final, os três serviços permane
 
 ## Limitações conhecidas
 
-- O envio de e-mail por SES ainda não está ativo; a notificação permanece com status `QUEUED`.
+- O código de envio SES está implementado e testado com a integração desativada, mas a ativação em DEV depende de verificar uma identidade de e-mail e aplicar a permissão mínima `ses:SendEmail` na task role.
 - Os alarmes existem sem ação SNS; a consulta ocorre pelo dashboard/console até que um canal de notificação seja aprovado.
 - Para uma carga de produção, a gravação do pagamento e a publicação devem adotar o padrão transactional outbox.
