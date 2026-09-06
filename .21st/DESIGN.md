@@ -48,3 +48,4 @@ Generated from project sources at 2026-09-06T00:44:39.809Z.
 ## Decisions
 
 - `guided-flow-dashboard`: use a dark AWS-inspired dashboard with a visible five-step event-to-email progression. Each user action maps clearly to one microservice and exposes the asynchronous outcome.
+- `observable-journey-console`: show a live architecture map and timestamped timeline driven by confirmed application responses, distinguishing the synchronous and asynchronous paths without inventing internal telemetry.

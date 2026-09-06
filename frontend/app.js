@@ -26,7 +26,9 @@ const elements = {
   registrationResult: document.querySelector("#registration-result"),
   paymentResult: document.querySelector("#payment-result"),
   notificationResult: document.querySelector("#notification-result"),
-  checkNotification: document.querySelector("#check-notification")
+  checkNotification: document.querySelector("#check-notification"),
+  journeyTimeline: document.querySelector("#journey-timeline"),
+  journeyCounter: document.querySelector("#journey-counter")
 };
 
 const flow = {
@@ -34,6 +36,7 @@ const flow = {
   registration: null, payment: null, notification: null
 };
 let toastTimer;
+const journey = { entries: new Map() };
 
 function notify(message, type = "info") {
   clearTimeout(toastTimer);
@@ -64,6 +67,90 @@ function addText(parent, tag, text, className) {
   if (className) node.className = className;
   parent.append(node);
   return node;
+}
+
+function formatJourneyTime(date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+  }).format(date);
+}
+
+function setEngineState(nodes = [], state) {
+  nodes.forEach(name => {
+    const node = document.querySelector(`[data-engine="${name}"]`);
+    if (!node) return;
+    node.classList.remove("running", "complete", "error");
+    if (state) node.classList.add(state);
+  });
+}
+
+function renderJourney() {
+  elements.journeyTimeline.replaceChildren();
+  const entries = [...journey.entries.values()];
+  elements.journeyCounter.textContent = `${entries.length} ${entries.length === 1 ? "evento" : "eventos"}`;
+  if (!entries.length) {
+    addText(elements.journeyTimeline, "li", "Aguardando uma ação para iniciar o rastreamento.", "journey-empty");
+    return;
+  }
+
+  entries.forEach(entry => {
+    const item = document.createElement("li");
+    item.className = `journey-event ${entry.state}`;
+    addText(item, "time", formatJourneyTime(entry.timestamp), "journey-time");
+    const marker = document.createElement("span");
+    marker.className = "journey-marker";
+    marker.setAttribute("aria-hidden", "true");
+    item.append(marker);
+    const copy = document.createElement("div");
+    copy.className = "journey-copy";
+    addText(copy, "strong", entry.title);
+    if (entry.detail) addText(copy, "span", entry.detail);
+    addText(copy, "span", entry.service, "journey-service");
+    item.append(copy);
+    addText(item, "span", entry.duration || (entry.state === "running" ? "processando" : ""), "journey-duration");
+    elements.journeyTimeline.append(item);
+  });
+  elements.journeyTimeline.scrollTop = elements.journeyTimeline.scrollHeight;
+}
+
+function startJourney(id, title, service, detail, nodes = []) {
+  journey.entries.delete(id);
+  journey.entries.set(id, {
+    id, title, service, detail, nodes, state: "running",
+    timestamp: new Date(), startedAt: performance.now(), duration: ""
+  });
+  setEngineState(nodes, "running");
+  renderJourney();
+  return id;
+}
+
+function finishJourney(id, detail, state = "complete") {
+  const entry = journey.entries.get(id);
+  if (!entry) return;
+  entry.state = state;
+  if (detail) entry.detail = detail;
+  entry.duration = `${Math.max(Math.round(performance.now() - entry.startedAt), 1)} ms`;
+  setEngineState(entry.nodes, state);
+  renderJourney();
+}
+
+function recordJourney(id, title, service, detail, nodes = []) {
+  startJourney(id, title, service, detail, nodes);
+  finishJourney(id, detail);
+}
+
+function failJourney(id, error) {
+  finishJourney(id, error.message || String(error), "error");
+}
+
+function hasJourney(id) {
+  return journey.entries.has(id);
+}
+
+function resetJourney() {
+  journey.entries.clear();
+  document.querySelectorAll(".engine-node").forEach(node => node.classList.remove("running", "complete", "error"));
+  renderJourney();
 }
 
 function showResult(target, title, detail, state) {
@@ -105,6 +192,7 @@ function resetFlow() {
   });
   elements.notificationResult.className = "empty-state";
   elements.notificationResult.textContent = "A notificação será processada após a aprovação do pagamento.";
+  resetJourney();
   updateSteps();
 }
 
@@ -181,14 +269,18 @@ function renderEvents() {
 
 async function loadEvents({ silent = false } = {}) {
   const button = document.querySelector("#reload-events");
+  const journeyId = "events-load";
+  startJourney(journeyId, "Consultando catálogo de eventos", "event-service · GET /events", "CloudFront encaminhando a chamada para o ALB.", ["frontend", "cloudfront", "alb", "ecs", "rds"]);
   setBusy(button, true, "Carregando…");
   try {
     const result = await api("/events");
     flow.events = Array.isArray(result.items) ? result.items : [];
     renderEvents();
     showTechnical(result);
+    finishJourney(journeyId, `${flow.events.length} evento(s) lido(s) do PostgreSQL.`);
     if (!silent) notify(`${flow.events.length} evento(s) carregado(s).`);
   } catch (error) {
+    failJourney(journeyId, error);
     notify(error.message, "error");
     if (!flow.events.length) {
       elements.eventList.replaceChildren();
@@ -217,12 +309,15 @@ async function selectEvent(event) {
   elements.paymentAmount.disabled = true;
   elements.paymentForm.querySelector("button").disabled = true;
   elements.checkNotification.disabled = true;
+  recordJourney("event-selected", "Evento selecionado na interface", "frontend", `${event.name} · ${event.city}`, ["frontend"]);
   updateSteps();
   await loadAvailability();
 }
 
 async function loadAvailability() {
   if (!flow.selectedEvent) return;
+  const journeyId = "availability";
+  startJourney(journeyId, "Consultando estoque de ingressos", "ticket-service · GET /tickets/availability", `eventId=${flow.selectedEvent.id}`, ["frontend", "cloudfront", "alb", "ecs", "rds"]);
   try {
     const result = await api(`/tickets/availability?eventId=${encodeURIComponent(flow.selectedEvent.id)}`);
     elements.availableCount.textContent = result.available;
@@ -230,7 +325,9 @@ async function loadAvailability() {
     elements.availability.hidden = false;
     document.querySelector("#ticket-quantity").max = Math.max(Number(result.available) || 1, 1);
     showTechnical(result);
+    finishJourney(journeyId, `${result.available} disponíveis · ${result.sold} reservados.`);
   } catch (error) {
+    failJourney(journeyId, error);
     elements.availability.hidden = true;
     notify(error.message, "error");
   }
@@ -243,17 +340,51 @@ async function loadBusinessStatus({ notifyResult = false } = {}) {
     if (updated) {
       flow.registration = updated;
       showResult(elements.registrationResult, updated.participant, `Inscrição ${updated.id}`, updated.status);
+      if (updated.status === "PAID" && !hasJourney("registration-consumer")) {
+        recordJourney(
+          "registration-consumer",
+          "Inscrição atualizada para PAID",
+          "SQS → registration-service → RDS",
+          `PaymentApproved consumido para ${updated.id}.`,
+          ["sqs", "consumers", "rds"]
+        );
+      }
     }
     const notification = notifications.items?.find(item => String(item.message).includes(flow.registration.id));
     if (notification) {
       flow.notification = notification;
       showResult(elements.notificationResult, notification.status === "SENT" ? "E-mail entregue ao provedor" : "Notificação processada", notification.message, notification.status);
+      if (!hasJourney("notification-consumer")) {
+        recordJourney(
+          "notification-consumer",
+          "Notificação consumida da fila",
+          "SQS → notification-service",
+          notification.message,
+          ["sqs", "consumers"]
+        );
+      }
+      if (notification.status === "SENT" && !hasJourney("ses-delivery")) {
+        recordJourney(
+          "ses-delivery",
+          "E-mail aceito pelo Amazon SES",
+          "notification-service → Amazon SES",
+          notification.providerMessageId ? `providerMessageId=${notification.providerMessageId}` : "Entrega registrada com status SENT.",
+          ["ses"]
+        );
+      }
     }
   }
   showTechnical({ registrations, notifications });
   updateSteps();
   if (notifyResult) notify(flow.notification ? "Notificação localizada." : "O processamento assíncrono ainda está em andamento.");
-  return Boolean(flow.registration?.status === "PAID" && flow.notification?.status === "SENT");
+  const completed = Boolean(flow.registration?.status === "PAID" && flow.notification?.status === "SENT");
+  if (completed) {
+    finishJourney("async-processing", "As duas filas foram processadas pelos consumidores.");
+    if (!hasJourney("journey-complete")) {
+      recordJourney("journey-complete", "Jornada concluída ponta a ponta", "EventFlow", "Evento → ingresso → inscrição → pagamento → e-mail.", ["frontend"]);
+    }
+  }
+  return completed;
 }
 
 async function pollBusinessStatus() {
@@ -289,6 +420,7 @@ elements.loginForm.addEventListener("submit", async event => {
     });
     if (!result.AuthenticationResult?.AccessToken) throw new Error("O usuário exige uma etapa adicional de autenticação");
     setSession(result.AuthenticationResult.AccessToken, username);
+    recordJourney("authentication", "Sessão autenticada", "Amazon Cognito", `Access token emitido para ${username}.`, ["frontend"]);
     elements.loginForm.reset();
     notify("Login realizado com sucesso.");
     await loadEvents({ silent: true });
@@ -350,6 +482,8 @@ document.querySelector("#resend-code").addEventListener("click", async event => 
 document.querySelector("#event-form").addEventListener("submit", async event => {
   event.preventDefault();
   const button = event.submitter;
+  const journeyId = "event-create";
+  startJourney(journeyId, "Criando evento", "event-service · POST /events", "Enviando dados pela rota síncrona.", ["frontend", "cloudfront", "alb", "ecs", "rds"]);
   setBusy(button, true, "Criando…");
   try {
     const created = await post("/events", {
@@ -361,21 +495,28 @@ document.querySelector("#event-form").addEventListener("submit", async event => 
     document.querySelector("#event-capacity").value = 50;
     flow.events.push(created);
     await selectEvent(created);
+    finishJourney(journeyId, `Evento ${created.id} persistido no PostgreSQL.`);
     notify("Evento criado e selecionado.");
     showTechnical(created);
-  } catch (error) { notify(error.message, "error"); }
+  } catch (error) {
+    failJourney(journeyId, error);
+    notify(error.message, "error");
+  }
   finally { setBusy(button, false); }
 });
 
 elements.ticketForm.addEventListener("submit", async event => {
   event.preventDefault();
   const button = event.submitter;
+  const journeyId = "ticket-reserve";
+  startJourney(journeyId, "Reservando ingresso", "ticket-service · POST /tickets/reserve", `eventId=${flow.selectedEvent.id}`, ["frontend", "cloudfront", "alb", "ecs", "rds"]);
   setBusy(button, true, "Reservando…");
   try {
     flow.reservation = await post("/tickets/reserve", {
       eventId: flow.selectedEvent.id,
       quantity: Number(document.querySelector("#ticket-quantity").value)
     });
+    finishJourney(journeyId, `Reserva ${flow.reservation.reservationId} confirmada com controle transacional de estoque.`);
     showResult(elements.reservationResult, `${flow.reservation.quantity} ingresso(s) reservado(s)`, `Reserva ${flow.reservation.reservationId}`, flow.reservation.status);
     elements.participantName.disabled = false;
     elements.registrationForm.querySelector("button").disabled = false;
@@ -384,6 +525,7 @@ elements.ticketForm.addEventListener("submit", async event => {
     notify("Reserva confirmada. Agora informe o participante.");
     elements.participantName.focus();
   } catch (error) {
+    failJourney(journeyId, error);
     showResult(elements.reservationResult, "Não foi possível reservar", error.message, "error");
     notify(error.message, "error");
   } finally { setBusy(button, false); }
@@ -392,12 +534,15 @@ elements.ticketForm.addEventListener("submit", async event => {
 elements.registrationForm.addEventListener("submit", async event => {
   event.preventDefault();
   const button = event.submitter;
+  const journeyId = "registration-create";
+  startJourney(journeyId, "Criando inscrição", "registration-service · POST /registrations", "Persistindo participante com status inicial PENDING_PAYMENT.", ["frontend", "cloudfront", "alb", "ecs", "rds"]);
   setBusy(button, true, "Registrando…");
   try {
     flow.registration = await post("/registrations", {
       eventId: flow.selectedEvent.id,
       participant: elements.participantName.value.trim()
     });
+    finishJourney(journeyId, `Inscrição ${flow.registration.id} criada como ${flow.registration.status}.`);
     showResult(elements.registrationResult, flow.registration.participant, `Inscrição ${flow.registration.id}`, flow.registration.status);
     elements.paymentAmount.disabled = false;
     elements.paymentForm.querySelector("button").disabled = false;
@@ -406,6 +551,7 @@ elements.registrationForm.addEventListener("submit", async event => {
     elements.paymentAmount.focus();
     showTechnical(flow.registration);
   } catch (error) {
+    failJourney(journeyId, error);
     showResult(elements.registrationResult, "Falha na inscrição", error.message, "error");
     notify(error.message, "error");
   } finally { setBusy(button, false); }
@@ -414,6 +560,8 @@ elements.registrationForm.addEventListener("submit", async event => {
 elements.paymentForm.addEventListener("submit", async event => {
   event.preventDefault();
   const button = event.submitter;
+  const journeyId = "payment-create";
+  startJourney(journeyId, "Processando pagamento", "payment-service · POST /payments", `registrationId=${flow.registration.id}`, ["frontend", "cloudfront", "alb", "ecs", "rds"]);
   setBusy(button, true, "Aprovando…");
   try {
     flow.payment = await post("/payments", {
@@ -421,6 +569,23 @@ elements.paymentForm.addEventListener("submit", async event => {
       amount: Number(elements.paymentAmount.value),
       approve: true
     });
+    finishJourney(journeyId, `Pagamento ${flow.payment.id} persistido como ${flow.payment.status}.`);
+    if (flow.payment.eventPublished) {
+      recordJourney(
+        "eventbridge-publish",
+        "Evento PaymentApproved publicado",
+        "payment-service → Amazon EventBridge",
+        "O barramento confirmou a publicação do evento de domínio.",
+        ["eventbridge"]
+      );
+      startJourney(
+        "async-processing",
+        "Processamento assíncrono em andamento",
+        "EventBridge → duas filas SQS",
+        "Aguardando registration-service e notification-service consumirem suas mensagens.",
+        ["eventbridge", "sqs"]
+      );
+    }
     showResult(elements.paymentResult, `Pagamento ${flow.payment.status.toLowerCase()}`, `ID ${flow.payment.id} · Evento publicado: ${flow.payment.eventPublished ? "sim" : "não"}`, flow.payment.status);
     elements.checkNotification.disabled = false;
     updateSteps();
@@ -428,12 +593,17 @@ elements.paymentForm.addEventListener("submit", async event => {
     showTechnical(flow.payment);
     await pollBusinessStatus();
   } catch (error) {
+    failJourney(journeyId, error);
     showResult(elements.paymentResult, "Falha no pagamento", error.message, "error");
     notify(error.message, "error");
   } finally { setBusy(button, false); }
 });
 
 document.querySelector("#reload-events").addEventListener("click", () => loadEvents());
+document.querySelector("#clear-journey").addEventListener("click", () => {
+  resetJourney();
+  notify("Console da jornada limpo.");
+});
 document.querySelector("#refresh-all").addEventListener("click", async event => {
   setBusy(event.currentTarget, true, "Atualizando…");
   try {

@@ -33,7 +33,7 @@
   "components": {
     "installed": [],
     "preferredPrimitives": [],
-    "patterns": ["guided five-step business flow", "service-labelled operation cards", "inline status feedback"]
+    "patterns": ["guided five-step business flow", "service-labelled operation cards", "inline status feedback", "live journey event console"]
   },
   "constraints": {
     "must": [
@@ -51,6 +51,11 @@
       "id": "guided-flow-dashboard",
       "decision": "Use a dark AWS-inspired dashboard with a visible five-step event-to-email progression.",
       "rationale": "The interface doubles as an academic demonstration, so each user action should map clearly to one microservice and expose the asynchronous outcome."
+    },
+    {
+      "id": "observable-journey-console",
+      "decision": "Show a live architecture map and timestamped event timeline driven by confirmed application responses.",
+      "rationale": "The academic video should make synchronous and asynchronous infrastructure behavior visible without claiming telemetry the frontend cannot observe."
     }
   ],
   "evidence": [

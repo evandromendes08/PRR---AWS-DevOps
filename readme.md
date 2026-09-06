@@ -38,7 +38,7 @@ O Terraform também prepara cabeçalhos HTTP de segurança, restringe a entrada 
 
 O diagrama técnico está em [`architecture/architecture.svg`](architecture/architecture.svg) e [`architecture/architecture.png`](architecture/architecture.png).
 
-O roteiro reproduzível para a apresentação está em [`docs/demo-video.md`](docs/demo-video.md), acompanhado pelo coletor somente leitura [`scripts/collect-demo-evidence.sh`](scripts/collect-demo-evidence.sh).
+O coletor somente leitura [`scripts/collect-demo-evidence.sh`](scripts/collect-demo-evidence.sh) reúne evidências técnicas do ambiente para a apresentação.
 
 ## Microserviços
 

@@ -8,6 +8,8 @@ Após o login, o access token permanece em `sessionStorage` e é enviado às API
 
 O painel autenticado permite criar ou selecionar um evento, consultar e reservar ingressos, registrar o participante, aprovar o pagamento e acompanhar a atualização assíncrona da inscrição e da notificação. A interface consulta inscrições e notificações após o pagamento até apresentar `PAID` e `SENT`, sem expor o access token na tela.
 
+O **Motor da jornada** registra no próprio frontend os marcos confirmados pelas respostas da aplicação, incluindo rota, microsserviço, horário e duração. Após o pagamento, ele diferencia o caminho síncrono CloudFront → ALB → ECS → RDS do caminho assíncrono EventBridge → SQS → consumidores → SES. O console não inventa telemetria interna: as conclusões assíncronas aparecem somente quando `eventPublished`, `PAID` e `SENT` são observados.
+
 ## Rotas
 
 - `/health` e requisições `OPTIONS` permanecem públicas para os health checks e CORS.

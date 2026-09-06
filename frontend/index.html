@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
   <title>EventFlow — AWS DevOps Demo</title>
-  <link rel="stylesheet" href="/style.css?v=full-flow">
+  <link rel="stylesheet" href="/style.css?v=journey-console">
 </head>
 <body>
   <header class="topbar">
@@ -104,6 +104,57 @@
         <div class="step" data-step="notification"><span>5</span><small>Notificação</small></div>
       </nav>
 
+      <section class="journey-console" aria-labelledby="journey-title">
+        <div class="journey-head">
+          <div>
+            <span class="live-label"><span aria-hidden="true"></span> OBSERVABILIDADE AO VIVO</span>
+            <h3 id="journey-title">Motor da jornada</h3>
+            <p>Marcos confirmados pelas respostas reais da aplicação, da interface ao e-mail.</p>
+          </div>
+          <button id="clear-journey" class="text-button" type="button">Limpar console</button>
+        </div>
+
+        <div class="engine-map" aria-label="Fluxo técnico da aplicação">
+          <div class="engine-lane">
+            <span class="lane-label">SÍNCRONO</span>
+            <div class="engine-track">
+              <div class="engine-node" data-engine="frontend"><span>UI</span><small>Browser</small></div>
+              <i aria-hidden="true">→</i>
+              <div class="engine-node" data-engine="cloudfront"><span>CDN</span><small>CloudFront</small></div>
+              <i aria-hidden="true">→</i>
+              <div class="engine-node" data-engine="alb"><span>LB</span><small>ALB</small></div>
+              <i aria-hidden="true">→</i>
+              <div class="engine-node" data-engine="ecs"><span>ECS</span><small>Fargate</small></div>
+              <i aria-hidden="true">→</i>
+              <div class="engine-node" data-engine="rds"><span>DB</span><small>PostgreSQL</small></div>
+            </div>
+          </div>
+          <div class="engine-lane async-lane">
+            <span class="lane-label">ASSÍNCRONO</span>
+            <div class="engine-track">
+              <div class="engine-node" data-engine="eventbridge"><span>EVT</span><small>EventBridge</small></div>
+              <i aria-hidden="true">→</i>
+              <div class="engine-node" data-engine="sqs"><span>Q</span><small>SQS × 2</small></div>
+              <i aria-hidden="true">→</i>
+              <div class="engine-node" data-engine="consumers"><span>µS</span><small>Consumers</small></div>
+              <i aria-hidden="true">→</i>
+              <div class="engine-node" data-engine="ses"><span>@</span><small>Amazon SES</small></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="timeline-shell">
+          <div class="console-bar">
+            <span><i></i><i></i><i></i></span>
+            <strong>eventflow / journey.log</strong>
+            <small id="journey-counter">0 eventos</small>
+          </div>
+          <ol id="journey-timeline" class="journey-timeline" aria-live="polite" aria-label="Eventos da jornada">
+            <li class="journey-empty">Aguardando uma ação para iniciar o rastreamento.</li>
+          </ol>
+        </div>
+      </section>
+
       <div class="dashboard-grid">
         <section class="panel panel-wide" aria-labelledby="events-title">
           <div class="panel-head">
@@ -173,6 +224,6 @@
   </main>
   <footer><span>EventFlow</span> Arquitetura acadêmica provisionada com Terraform · us-east-1</footer>
   <script src="/config.js"></script>
-  <script src="/app.js?v=full-flow"></script>
+  <script src="/app.js?v=journey-console"></script>
 </body>
 </html>
