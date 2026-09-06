@@ -15,9 +15,9 @@ variable "environment" {
 }
 
 variable "ecs_desired_count" {
-  description = "Desired task count per ECS microservice. Use 0 only during the first infrastructure bootstrap before images exist in ECR."
+  description = "Desired task count per ECS microservice. Keep 0 while DEV is paused and use 1 during demonstrations."
   type        = number
-  default     = 1
+  default     = 0
 
   validation {
     condition     = var.ecs_desired_count >= 0

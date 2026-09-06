@@ -179,6 +179,12 @@ README.md
 
 A primeira execução exige o bootstrap do bucket de state e da role OIDC descrito em [`docs/bootstrap.md`](docs/bootstrap.md).
 
+## Pausar e retomar DEV
+
+Para reduzir custos fora das demonstrações, o ambiente DEV mantém por padrão `ecs_desired_count = 0`. O RDS pode ser interrompido temporariamente, mas a AWS o reinicia automaticamente após no máximo sete dias. ALB, CloudFront, S3, ECR e o armazenamento do RDS permanecem provisionados e continuam gerando custo residual.
+
+Antes de uma demonstração, inicie o RDS, aguarde o status `available` e aplique o Terraform com `-var='ecs_desired_count=1'`. Ao terminar, reaplique com o valor `0` e interrompa novamente o RDS. Nunca execute `terraform destroy` como parte desse procedimento operacional.
+
 ## Status
 
 - [x] Estrutura inicial do repositório
