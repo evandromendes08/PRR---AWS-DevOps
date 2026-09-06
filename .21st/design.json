@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "project": {
+    "name": "PRR---AWS-DevOps",
+    "productType": "Academic event-management operations dashboard",
+    "stack": ["HTML", "CSS", "Vanilla JavaScript"]
+  },
+  "sources": {
+    "tokens": [],
+    "components": [],
+    "assets": [],
+    "instructions": [
+      "AGENTS.md"
+    ]
+  },
+  "design": {
+    "colorMode": "dark",
+    "colors": {
+      "background": "#07111f",
+      "surface": "#0d1b2b",
+      "accent": "#f7a928",
+      "success": "#43d9bd",
+      "text": "#e9f0f8",
+      "muted": "#91a4b8"
+    },
+    "typography": { "family": "Inter, system-ui, sans-serif" },
+    "spacing": {},
+    "radius": {},
+    "shadows": {},
+    "motion": {},
+    "density": "comfortable"
+  },
+  "components": {
+    "installed": [],
+    "preferredPrimitives": [],
+    "patterns": ["guided five-step business flow", "service-labelled operation cards", "inline status feedback"]
+  },
+  "constraints": {
+    "must": [
+      "Keep the full business flow usable on mobile and desktop",
+      "Show loading, empty, success, and error states",
+      "Use real API data and safe text rendering"
+    ],
+    "avoid": [
+      "Decorative imagery that distracts from the architecture demonstration",
+      "Framework dependencies for the static S3 frontend"
+    ]
+  },
+  "decisions": [
+    {
+      "id": "guided-flow-dashboard",
+      "decision": "Use a dark AWS-inspired dashboard with a visible five-step event-to-email progression.",
+      "rationale": "The interface doubles as an academic demonstration, so each user action should map clearly to one microservice and expose the asynchronous outcome."
+    }
+  ],
+  "evidence": [
+    {
+      "fact": "project.instructions",
+      "source": "AGENTS.md"
+    }
+  ],
+  "generatedAt": "2026-09-06T00:44:39.809Z"
+}

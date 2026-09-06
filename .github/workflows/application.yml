@@ -126,6 +126,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate frontend syntax
+        run: node --check frontend/app.js
+
       - uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}

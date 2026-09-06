@@ -3,58 +3,176 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Event Management</title>
-  <link rel="stylesheet" href="/style.css">
+  <meta name="theme-color" content="#07111f">
+  <title>EventFlow — AWS DevOps Demo</title>
+  <link rel="stylesheet" href="/style.css?v=full-flow">
 </head>
 <body>
-  <main>
-    <h1>Event Management</h1>
-    <p>Aplicação demonstrativa em AWS com autenticação Amazon Cognito.</p>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="EventFlow, início">
+      <span class="brand-mark" aria-hidden="true">EF</span>
+      <span><strong>EventFlow</strong><small>AWS DevOps Demo</small></span>
+    </a>
+    <div class="environment"><span class="pulse"></span> Ambiente DEV operacional</div>
+  </header>
 
-    <section id="login-panel">
-      <h2>Entrar</h2>
-      <form id="login-form">
-        <label>Usuário <input id="username" autocomplete="username" required></label>
-        <label>Senha <input id="password" type="password" autocomplete="current-password" required></label>
-        <button type="submit">Entrar</button>
-      </form>
-
-      <details>
-        <summary>Criar uma conta</summary>
-        <form id="signup-form">
-          <label>Usuário <input id="signup-username" autocomplete="username" required></label>
-          <label>E-mail <input id="signup-email" type="email" autocomplete="email" required></label>
-          <label>Senha <input id="signup-password" type="password" autocomplete="new-password" minlength="8" required></label>
-          <small>A senha deve conter maiúscula, minúscula, número e símbolo.</small>
-          <button type="submit">Cadastrar</button>
-        </form>
-      </details>
-
-      <details id="confirmation-details">
-        <summary>Confirmar uma conta</summary>
-        <form id="confirmation-form">
-          <label>Usuário <input id="confirmation-username" autocomplete="username" required></label>
-          <label>Código recebido por e-mail <input id="confirmation-code" inputmode="numeric" autocomplete="one-time-code" required></label>
-          <div class="actions">
-            <button type="submit">Confirmar</button>
-            <button id="resend-code" type="button" class="secondary">Reenviar código</button>
-          </div>
-        </form>
-      </details>
-    </section>
-
-    <section id="session-panel" hidden>
-      <p>Autenticado como <strong id="current-user"></strong>.</p>
-      <div class="actions">
-        <button id="load" type="button">Carregar eventos</button>
-        <button id="logout" class="secondary" type="button">Sair</button>
+  <main id="top">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">PLATAFORMA DE EVENTOS</p>
+        <h1>Uma jornada completa,<br><span>do evento ao e-mail.</span></h1>
+        <p class="hero-copy">Demonstre, em uma única interface, cinco microsserviços executando no ECS Fargate e integrados por APIs e eventos assíncronos.</p>
+      </div>
+      <div class="architecture" aria-label="Resumo da arquitetura">
+        <div><strong>5</strong><span>microsserviços</span></div>
+        <div><strong>65</strong><span>recursos IaC</span></div>
+        <div><strong>AWS</strong><span>cloud native</span></div>
       </div>
     </section>
 
-    <p id="status" role="status" aria-live="polite"></p>
-    <pre id="out">Faça login para consultar a API.</pre>
+    <section id="login-panel" class="auth-shell">
+      <div class="auth-intro">
+        <p class="eyebrow">ACESSO SEGURO</p>
+        <h2>Entre na demonstração</h2>
+        <p>A autenticação é protegida pelo Amazon Cognito. Após entrar, você poderá percorrer todo o fluxo de negócio.</p>
+        <ul class="feature-list">
+          <li><span>01</span> Criação e seleção de eventos</li>
+          <li><span>02</span> Reserva de ingressos</li>
+          <li><span>03</span> Inscrição e pagamento</li>
+          <li><span>04</span> Notificação assíncrona por e-mail</li>
+        </ul>
+      </div>
+      <div class="auth-card">
+        <h2>Boas-vindas</h2>
+        <p class="muted">Use sua conta confirmada para continuar.</p>
+        <form id="login-form">
+          <label for="username">Usuário</label>
+          <input id="username" autocomplete="username" placeholder="Seu usuário" required>
+          <label for="password">Senha</label>
+          <input id="password" type="password" autocomplete="current-password" placeholder="Sua senha" required>
+          <button type="submit">Entrar na plataforma <span aria-hidden="true">→</span></button>
+        </form>
+
+        <details>
+          <summary>Criar uma conta</summary>
+          <form id="signup-form">
+            <label for="signup-username">Usuário</label>
+            <input id="signup-username" autocomplete="username" required>
+            <label for="signup-email">E-mail</label>
+            <input id="signup-email" type="email" autocomplete="email" required>
+            <label for="signup-password">Senha</label>
+            <input id="signup-password" type="password" autocomplete="new-password" minlength="8" required>
+            <small>A senha deve conter maiúscula, minúscula, número e símbolo.</small>
+            <button type="submit">Cadastrar</button>
+          </form>
+        </details>
+
+        <details id="confirmation-details">
+          <summary>Confirmar uma conta</summary>
+          <form id="confirmation-form">
+            <label for="confirmation-username">Usuário</label>
+            <input id="confirmation-username" autocomplete="username" required>
+            <label for="confirmation-code">Código recebido por e-mail</label>
+            <input id="confirmation-code" inputmode="numeric" autocomplete="one-time-code" required>
+            <div class="actions">
+              <button type="submit">Confirmar</button>
+              <button id="resend-code" type="button" class="secondary">Reenviar código</button>
+            </div>
+          </form>
+        </details>
+      </div>
+    </section>
+
+    <section id="session-panel" class="dashboard" hidden>
+      <div class="dashboard-head">
+        <div>
+          <p class="eyebrow">PAINEL DE DEMONSTRAÇÃO</p>
+          <h2>Olá, <span id="current-user"></span></h2>
+          <p class="muted">Complete o fluxo abaixo para validar a arquitetura ponta a ponta.</p>
+        </div>
+        <div class="actions">
+          <button id="refresh-all" class="secondary" type="button">Atualizar dados</button>
+          <button id="logout" class="ghost" type="button">Sair</button>
+        </div>
+      </div>
+
+      <nav class="stepper" aria-label="Etapas da demonstração">
+        <div class="step active" data-step="event"><span>1</span><small>Evento</small></div>
+        <div class="step" data-step="ticket"><span>2</span><small>Ingresso</small></div>
+        <div class="step" data-step="registration"><span>3</span><small>Inscrição</small></div>
+        <div class="step" data-step="payment"><span>4</span><small>Pagamento</small></div>
+        <div class="step" data-step="notification"><span>5</span><small>Notificação</small></div>
+      </nav>
+
+      <div class="dashboard-grid">
+        <section class="panel panel-wide" aria-labelledby="events-title">
+          <div class="panel-head">
+            <div><span class="service-tag">event-service</span><h3 id="events-title">Escolha um evento</h3></div>
+            <button id="reload-events" class="text-button" type="button">Recarregar</button>
+          </div>
+          <div id="event-list" class="event-list" aria-live="polite"></div>
+          <details class="create-event">
+            <summary>+ Criar novo evento</summary>
+            <form id="event-form" class="inline-form">
+              <label for="event-name">Nome<input id="event-name" placeholder="Ex.: Summit Cloud 2026" required></label>
+              <label for="event-city">Cidade<input id="event-city" placeholder="Ex.: São Paulo" required></label>
+              <label for="event-capacity">Ingressos<input id="event-capacity" type="number" min="1" value="50" required></label>
+              <button type="submit">Criar evento</button>
+            </form>
+          </details>
+        </section>
+
+        <section class="panel" aria-labelledby="tickets-title">
+          <div class="panel-head"><div><span class="service-tag">ticket-service</span><h3 id="tickets-title">Reserve ingressos</h3></div></div>
+          <div id="selected-event" class="empty-state">Selecione um evento para continuar.</div>
+          <div id="availability" class="metrics" hidden>
+            <div><strong id="available-count">—</strong><span>disponíveis</span></div>
+            <div><strong id="sold-count">—</strong><span>reservados</span></div>
+          </div>
+          <form id="ticket-form" class="compact-form" hidden>
+            <label for="ticket-quantity">Quantidade</label>
+            <div class="input-action"><input id="ticket-quantity" type="number" min="1" value="1" required><button type="submit">Reservar</button></div>
+          </form>
+          <div id="reservation-result" class="result-box" hidden></div>
+        </section>
+
+        <section class="panel" aria-labelledby="registration-title">
+          <div class="panel-head"><div><span class="service-tag">registration-service</span><h3 id="registration-title">Faça a inscrição</h3></div></div>
+          <form id="registration-form" class="compact-form">
+            <label for="participant-name">Nome do participante</label>
+            <input id="participant-name" placeholder="Nome completo" required disabled>
+            <button type="submit" disabled>Registrar participante</button>
+          </form>
+          <div id="registration-result" class="result-box" hidden></div>
+        </section>
+
+        <section class="panel" aria-labelledby="payment-title">
+          <div class="panel-head"><div><span class="service-tag">payment-service</span><h3 id="payment-title">Aprove o pagamento</h3></div></div>
+          <form id="payment-form" class="compact-form">
+            <label for="payment-amount">Valor da demonstração</label>
+            <div class="currency-input"><span>R$</span><input id="payment-amount" type="number" min="0.01" step="0.01" value="49.90" required disabled></div>
+            <button type="submit" disabled>Aprovar pagamento</button>
+          </form>
+          <div id="payment-result" class="result-box" hidden></div>
+        </section>
+
+        <section class="panel" aria-labelledby="notification-title">
+          <div class="panel-head"><div><span class="service-tag">notification-service</span><h3 id="notification-title">Acompanhe a entrega</h3></div></div>
+          <div id="notification-result" class="empty-state">A notificação será processada após a aprovação do pagamento.</div>
+          <button id="check-notification" class="secondary full-button" type="button" disabled>Verificar processamento</button>
+        </section>
+      </div>
+
+      <details class="technical-details">
+        <summary>Detalhes técnicos da última operação</summary>
+        <pre id="out">Aguardando uma operação.</pre>
+      </details>
+    </section>
+
+    <div id="status" class="toast" role="status" aria-live="polite" hidden></div>
   </main>
+  <footer><span>EventFlow</span> Arquitetura acadêmica provisionada com Terraform · us-east-1</footer>
   <script src="/config.js"></script>
-  <script src="/app.js"></script>
+  <script src="/app.js?v=full-flow"></script>
 </body>
 </html>

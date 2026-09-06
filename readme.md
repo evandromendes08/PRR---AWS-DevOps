@@ -7,7 +7,7 @@ Projeto acadêmico de arquitetura cloud, microserviços, Infraestrutura como Có
 - Aproximadamente 100.000 chamadas por dia.
 - Personas: organizadores de eventos e participantes.
 - Escopo inicial local, preparado para expansão.
-- Aplicação demonstrativa com frontend simples.
+- Aplicação demonstrativa com interface guiada para o fluxo completo de negócio.
 - Prioridade: arquitetura tecnicamente coerente e baixo custo operacional para o MVP acadêmico.
 
 ## Arquitetura
@@ -53,7 +53,7 @@ services/
 
 Cada serviço possui endpoint `/health`, rotas demonstrativas do domínio e suporte a PostgreSQL.
 
-Com `DB_ENABLED=true`, os dados são persistidos no PostgreSQL; sem essa variável, os serviços utilizam memória para testes rápidos. Cognito protege as rotas de negócio. O pagamento aprovado é publicado no EventBridge e distribuído para duas filas SQS consumidas pelos serviços de inscrições e notificações. O `notification-service` já possui integração configurável com SES, desativada por padrão até a identidade de e-mail ser verificada em DEV.
+Com `DB_ENABLED=true`, os dados são persistidos no PostgreSQL; sem essa variável, os serviços utilizam memória para testes rápidos. Cognito protege as rotas de negócio. O pagamento aprovado é publicado no EventBridge e distribuído para duas filas SQS consumidas pelos serviços de inscrições e notificações. Em DEV, o `notification-service` envia a confirmação real pelo SES para a identidade verificada do ambiente.
 
 ## Fluxo demonstrativo
 
@@ -72,10 +72,12 @@ EventBridge
     ↓
 SQS de inscrições ─→ Atualizar inscrição para PAID
     +
-SQS de notificações ─→ Persistir notificação QUEUED
+SQS de notificações ─→ Enviar e-mail pelo SES e persistir notificação SENT
 ```
 
 O `ticket-service` também demonstra controle básico de disponibilidade para evitar reserva acima do estoque disponível.
+
+O frontend conduz esse fluxo em cinco etapas, identifica o microsserviço responsável por cada operação, acompanha automaticamente o processamento assíncrono e exibe os estados `PAID` e `SENT` quando a jornada é concluída.
 
 ## Infraestrutura como Código
 

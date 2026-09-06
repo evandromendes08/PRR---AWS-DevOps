@@ -6,6 +6,8 @@ O painel **Confirmar uma conta** permanece disponível após recarregar a págin
 
 Após o login, o access token permanece em `sessionStorage` e é enviado às APIs no cabeçalho `Authorization: Bearer <token>`. Os cinco microserviços validam localmente assinatura, expiração, `token_use=access`, user pool e app client por meio de `aws-jwt-verify`.
 
+O painel autenticado permite criar ou selecionar um evento, consultar e reservar ingressos, registrar o participante, aprovar o pagamento e acompanhar a atualização assíncrona da inscrição e da notificação. A interface consulta inscrições e notificações após o pagamento até apresentar `PAID` e `SENT`, sem expor o access token na tela.
+
 ## Rotas
 
 - `/health` e requisições `OPTIONS` permanecem públicas para os health checks e CORS.
