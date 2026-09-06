@@ -15,9 +15,9 @@ variable "environment" {
 }
 
 variable "ecs_desired_count" {
-  description = "Desired task count per ECS microservice. Keep 0 while DEV is paused and use 1 during demonstrations."
+  description = "Desired task count per ECS microservice. Use 1 for the active DEV demonstration and 0 to pause Fargate compute."
   type        = number
-  default     = 0
+  default     = 1
 
   validation {
     condition     = var.ecs_desired_count >= 0
