@@ -7,6 +7,7 @@ const sessionPanel = document.querySelector("#session-panel");
 const loginForm = document.querySelector("#login-form");
 const signupForm = document.querySelector("#signup-form");
 const confirmationForm = document.querySelector("#confirmation-form");
+const confirmationDetails = document.querySelector("#confirmation-details");
 const status = document.querySelector("#status");
 const output = document.querySelector("#out");
 const currentUser = document.querySelector("#current-user");
@@ -88,7 +89,7 @@ signupForm.addEventListener("submit", async event => {
       status.textContent = "Conta criada. Faça login.";
     } else {
       document.querySelector("#confirmation-username").value = username;
-      confirmationForm.hidden = false;
+      confirmationDetails.open = true;
       status.textContent = "Conta criada. Informe o código enviado por e-mail.";
     }
     signupForm.reset();
@@ -107,8 +108,27 @@ confirmationForm.addEventListener("submit", async event => {
       ConfirmationCode: document.querySelector("#confirmation-code").value.trim()
     });
     confirmationForm.reset();
-    confirmationForm.hidden = true;
+    confirmationDetails.open = false;
     status.textContent = "Conta confirmada. Faça login.";
+  } catch (error) {
+    status.textContent = error.message;
+  }
+});
+
+document.querySelector("#resend-code").addEventListener("click", async () => {
+  const username = document.querySelector("#confirmation-username").value.trim();
+  if (!username) {
+    status.textContent = "Informe o usuário para reenviar o código.";
+    return;
+  }
+
+  status.textContent = "Reenviando código…";
+  try {
+    await cognito("ResendConfirmationCode", {
+      ClientId: config.cognitoClientId,
+      Username: username
+    });
+    status.textContent = "Novo código enviado. Verifique também Spam e Promoções.";
   } catch (error) {
     status.textContent = error.message;
   }

@@ -30,12 +30,17 @@
         </form>
       </details>
 
-      <form id="confirmation-form" hidden>
-        <h2>Confirmar conta</h2>
-        <label>Usuário <input id="confirmation-username" autocomplete="username" required></label>
-        <label>Código recebido por e-mail <input id="confirmation-code" inputmode="numeric" autocomplete="one-time-code" required></label>
-        <button type="submit">Confirmar</button>
-      </form>
+      <details id="confirmation-details">
+        <summary>Confirmar uma conta</summary>
+        <form id="confirmation-form">
+          <label>Usuário <input id="confirmation-username" autocomplete="username" required></label>
+          <label>Código recebido por e-mail <input id="confirmation-code" inputmode="numeric" autocomplete="one-time-code" required></label>
+          <div class="actions">
+            <button type="submit">Confirmar</button>
+            <button id="resend-code" type="button" class="secondary">Reenviar código</button>
+          </div>
+        </form>
+      </details>
     </section>
 
     <section id="session-panel" hidden>

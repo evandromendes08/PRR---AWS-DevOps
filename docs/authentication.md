@@ -2,6 +2,8 @@
 
 O frontend cadastra e autentica usuários diretamente no app client público do Cognito. O cadastro confirma o endereço por código enviado pelo Cognito, e o login usa o fluxo `USER_PASSWORD_AUTH`. A senha é enviada somente ao endpoint regional do Cognito e não passa pelo ALB nem pelos microserviços.
 
+O painel **Confirmar uma conta** permanece disponível após recarregar a página e permite solicitar `ResendConfirmationCode` informando o nome de usuário. Isso atende atrasos de entrega ou perda do primeiro código sem intervenção administrativa.
+
 Após o login, o access token permanece em `sessionStorage` e é enviado às APIs no cabeçalho `Authorization: Bearer <token>`. Os cinco microserviços validam localmente assinatura, expiração, `token_use=access`, user pool e app client por meio de `aws-jwt-verify`.
 
 ## Rotas
