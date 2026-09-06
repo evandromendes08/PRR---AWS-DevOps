@@ -38,7 +38,23 @@ async function transaction(callback) {
 }
 
 async function initialize(sql) {
-  if (pool) await pool.query(sql);
+  if (!pool) return;
+
+  // Multiple services share the same schema and can start at the same time.
+  // PostgreSQL's CREATE TABLE IF NOT EXISTS is not race-safe when two sessions
+  // create the same table concurrently, so serialize startup migrations.
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext('event-management-schema'))");
+    await client.query(sql);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function health() {
