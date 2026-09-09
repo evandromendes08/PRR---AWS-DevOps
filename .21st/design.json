@@ -33,7 +33,7 @@
   "components": {
     "installed": [],
     "preferredPrimitives": [],
-    "patterns": ["guided five-step business flow", "service-labelled operation cards", "inline status feedback", "live journey event console"]
+    "patterns": ["guided five-step business flow", "service-labelled operation cards", "inline status feedback", "live journey event console", "reversible event lifecycle status"]
   },
   "constraints": {
     "must": [
@@ -56,6 +56,11 @@
       "id": "observable-journey-console",
       "decision": "Show a live architecture map and timestamped event timeline driven by confirmed application responses.",
       "rationale": "The academic video should make synchronous and asynchronous infrastructure behavior visible without claiming telemetry the frontend cannot observe."
+    },
+    {
+      "id": "reversible-event-status",
+      "decision": "Hide inactive events by default, expose them through an explicit filter, and allow reversible activation from the event card.",
+      "rationale": "Organizers need to stop new reservations without deleting historical event data, while keeping the primary selection view focused on active events."
     }
   ],
   "evidence": [

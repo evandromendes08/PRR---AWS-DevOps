@@ -10,6 +10,15 @@ const service = "ticket-service";
 const tickets = { "evt-001": { available: 100, sold: 0 } };
 
 const schema = `
+  CREATE TABLE IF NOT EXISTS events (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    city TEXT NOT NULL,
+    available INTEGER NOT NULL CHECK (available >= 0),
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  ALTER TABLE events ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
   CREATE TABLE IF NOT EXISTS tickets (
     event_id TEXT PRIMARY KEY,
     available INTEGER NOT NULL CHECK (available >= 0),
@@ -42,10 +51,13 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { eventId, ...(tickets[eventId] || { available: 0, sold: 0 }) });
       }
       const result = await db.query(
-        "SELECT available, sold FROM tickets WHERE event_id = $1",
+        `SELECT tickets.available, tickets.sold, COALESCE(events.active, FALSE) AS active
+           FROM tickets
+           LEFT JOIN events ON events.id = tickets.event_id
+          WHERE tickets.event_id = $1`,
         [eventId]
       );
-      return json(res, 200, { eventId, ...(result.rows[0] || { available: 0, sold: 0 }) });
+      return json(res, 200, { eventId, ...(result.rows[0] || { available: 0, sold: 0, active: false }) });
     }
 
     if (req.method === "POST" && path === "/tickets/reserve") {
@@ -57,19 +69,26 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (db.enabled) {
-        const reserved = await db.transaction(async client => {
+        const reservationResult = await db.transaction(async client => {
           const current = await client.query(
-            "SELECT available FROM tickets WHERE event_id = $1 FOR UPDATE",
+            `SELECT tickets.available, events.active
+               FROM tickets
+               JOIN events ON events.id = tickets.event_id
+              WHERE tickets.event_id = $1
+              FOR UPDATE OF tickets`,
             [eventId]
           );
-          if (!current.rows[0] || current.rows[0].available < quantity) return false;
+          if (!current.rows[0]) return "unavailable";
+          if (!current.rows[0].active) return "inactive";
+          if (current.rows[0].available < quantity) return "unavailable";
           await client.query(
             "UPDATE tickets SET available = available - $1, sold = sold + $1 WHERE event_id = $2",
             [quantity, eventId]
           );
-          return true;
+          return "reserved";
         });
-        if (!reserved) return json(res, 409, { error: "Ingressos indisponíveis" });
+        if (reservationResult === "inactive") return json(res, 409, { error: "Evento inativo" });
+        if (reservationResult !== "reserved") return json(res, 409, { error: "Ingressos indisponíveis" });
       } else {
         const stock = tickets[eventId];
         if (!stock || stock.available < quantity) {

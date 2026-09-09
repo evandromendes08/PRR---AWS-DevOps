@@ -53,6 +53,8 @@ services/
 
 Cada serviço possui endpoint `/health`, rotas demonstrativas do domínio e suporte a PostgreSQL.
 
+Eventos podem ser desativados sem exclusão. A interface oculta os inativos por padrão, permite reativá-los e o backend impede novas reservas enquanto o evento estiver inativo.
+
 Com `DB_ENABLED=true`, os dados são persistidos no PostgreSQL; sem essa variável, os serviços utilizam memória para testes rápidos. Cognito protege as rotas de negócio. O pagamento aprovado é publicado no EventBridge e distribuído para duas filas SQS consumidas pelos serviços de inscrições e notificações. Em DEV, o `notification-service` envia a confirmação real pelo SES para a identidade verificada do ambiente.
 
 ## Fluxo demonstrativo

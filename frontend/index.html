@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
   <title>EventFlow — AWS DevOps Demo</title>
-  <link rel="stylesheet" href="/style.css?v=journey-console">
+  <link rel="stylesheet" href="/style.css?v=event-status">
 </head>
 <body>
   <header class="topbar">
@@ -159,7 +159,10 @@
         <section class="panel panel-wide" aria-labelledby="events-title">
           <div class="panel-head">
             <div><span class="service-tag">event-service</span><h3 id="events-title">Escolha um evento</h3></div>
-            <button id="reload-events" class="text-button" type="button">Recarregar</button>
+            <div class="event-list-actions">
+              <button id="toggle-inactive-events" class="text-button" type="button" hidden>Mostrar inativos</button>
+              <button id="reload-events" class="text-button" type="button">Recarregar</button>
+            </div>
           </div>
           <div id="event-list" class="event-list" aria-live="polite"></div>
           <details class="create-event">
@@ -224,6 +227,6 @@
   </main>
   <footer><span>EventFlow</span> Arquitetura acadêmica provisionada com Terraform · us-east-1</footer>
   <script src="/config.js"></script>
-  <script src="/app.js?v=journey-console"></script>
+  <script src="/app.js?v=event-status"></script>
 </body>
 </html>

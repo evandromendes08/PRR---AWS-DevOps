@@ -8,7 +8,7 @@ const { json, body, apiPath } = require("../shared/http");
 const port = Number(process.env.PORT || 3000);
 const service = "event-service";
 const events = [
-  { id: "evt-001", name: "AWS DevOps Experience", city: "Brasília", available: 100 }
+  { id: "evt-001", name: "AWS DevOps Experience", city: "Brasília", available: 100, active: true }
 ];
 
 const schema = `
@@ -17,8 +17,10 @@ const schema = `
     name TEXT NOT NULL,
     city TEXT NOT NULL,
     available INTEGER NOT NULL CHECK (available >= 0),
+    active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
+  ALTER TABLE events ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
   CREATE TABLE IF NOT EXISTS tickets (
     event_id TEXT PRIMARY KEY,
     available INTEGER NOT NULL CHECK (available >= 0),
@@ -33,7 +35,7 @@ const schema = `
 `;
 
 function eventFromRow(row) {
-  return { id: row.id, name: row.name, city: row.city, available: row.available };
+  return { id: row.id, name: row.name, city: row.city, available: row.available, active: row.active };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -54,8 +56,31 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && path === "/events") {
       if (!db.enabled) return json(res, 200, { items: events });
-      const result = await db.query("SELECT id, name, city, available FROM events ORDER BY created_at");
+      const result = await db.query("SELECT id, name, city, available, active FROM events ORDER BY active DESC, created_at");
       return json(res, 200, { items: result.rows.map(eventFromRow) });
+    }
+
+    const statusMatch = path.match(/^\/events\/([^/]+)\/status$/);
+    if (req.method === "POST" && statusMatch) {
+      const input = await body(req);
+      if (typeof input.active !== "boolean") {
+        return json(res, 422, { error: "active must be a boolean" });
+      }
+      const eventId = statusMatch[1];
+
+      if (db.enabled) {
+        const result = await db.query(
+          "UPDATE events SET active = $2 WHERE id = $1 RETURNING id, name, city, available, active",
+          [eventId, input.active]
+        );
+        if (!result.rows[0]) return json(res, 404, { error: "Evento não encontrado" });
+        return json(res, 200, eventFromRow(result.rows[0]));
+      }
+
+      const existing = events.find(item => item.id === eventId);
+      if (!existing) return json(res, 404, { error: "Evento não encontrado" });
+      existing.active = input.active;
+      return json(res, 200, existing);
     }
 
     if (req.method === "POST" && path === "/events") {
@@ -68,7 +93,8 @@ const server = http.createServer(async (req, res) => {
         id: `evt-${randomUUID()}`,
         name: String(input.name || "Novo evento"),
         city: String(input.city || "Brasília"),
-        available
+        available,
+        active: true
       };
 
       if (db.enabled) {

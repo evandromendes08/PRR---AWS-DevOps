@@ -13,6 +13,7 @@ const elements = {
   status: document.querySelector("#status"),
   output: document.querySelector("#out"),
   eventList: document.querySelector("#event-list"),
+  toggleInactiveEvents: document.querySelector("#toggle-inactive-events"),
   selectedEvent: document.querySelector("#selected-event"),
   availability: document.querySelector("#availability"),
   availableCount: document.querySelector("#available-count"),
@@ -33,7 +34,7 @@ const elements = {
 
 const flow = {
   events: [], selectedEvent: null, reservation: null,
-  registration: null, payment: null, notification: null
+  registration: null, payment: null, notification: null, showInactive: false
 };
 let toastTimer;
 const journey = { entries: new Map() };
@@ -172,7 +173,7 @@ function updateSteps() {
 }
 
 function resetFlow() {
-  Object.assign(flow, { events: [], selectedEvent: null, reservation: null, registration: null, payment: null, notification: null });
+  Object.assign(flow, { events: [], selectedEvent: null, reservation: null, registration: null, payment: null, notification: null, showInactive: false });
   elements.eventList.replaceChildren();
   elements.selectedEvent.className = "empty-state";
   elements.selectedEvent.textContent = "Selecione um evento para continuar.";
@@ -245,26 +246,95 @@ function post(path, body) {
 
 function renderEvents() {
   elements.eventList.replaceChildren();
-  if (!flow.events.length) {
-    const empty = addText(elements.eventList, "div", "Nenhum evento cadastrado. Crie o primeiro evento para iniciar a demonstração.", "empty-state");
+  const inactiveCount = flow.events.filter(event => event.active === false).length;
+  elements.toggleInactiveEvents.hidden = inactiveCount === 0;
+  elements.toggleInactiveEvents.textContent = flow.showInactive ? "Ocultar inativos" : `Mostrar inativos (${inactiveCount})`;
+  const visibleEvents = flow.showInactive ? flow.events : flow.events.filter(event => event.active !== false);
+
+  if (!visibleEvents.length) {
+    const message = flow.events.length
+      ? "Nenhum evento ativo. Mostre os inativos para reativar um evento."
+      : "Nenhum evento cadastrado. Crie o primeiro evento para iniciar a demonstração.";
+    const empty = addText(elements.eventList, "div", message, "empty-state");
     empty.style.gridColumn = "1 / -1";
     return;
   }
-  flow.events.forEach(event => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `event-card${flow.selectedEvent?.id === event.id ? " selected" : ""}`;
-    button.setAttribute("aria-pressed", String(flow.selectedEvent?.id === event.id));
-    button.addEventListener("click", () => selectEvent(event));
-    addText(button, "strong", event.name);
-    addText(button, "small", event.city);
+  visibleEvents.forEach(event => {
+    const active = event.active !== false;
+    const card = document.createElement("article");
+    card.className = `event-card${flow.selectedEvent?.id === event.id ? " selected" : ""}${active ? "" : " inactive"}`;
+
+    const selectButton = document.createElement("button");
+    selectButton.type = "button";
+    selectButton.className = "event-select";
+    selectButton.disabled = !active;
+    selectButton.setAttribute("aria-pressed", String(flow.selectedEvent?.id === event.id));
+    selectButton.setAttribute("aria-label", active ? `Selecionar ${event.name}` : `${event.name}, evento inativo`);
+    selectButton.addEventListener("click", () => selectEvent(event));
+    addText(selectButton, "strong", event.name);
+    addText(selectButton, "small", event.city);
     const meta = document.createElement("span");
     meta.className = "event-meta";
     addText(meta, "small", `ID ${String(event.id).slice(0, 8)}`);
     addText(meta, "span", `${event.available} ingressos`, "capacity");
-    button.append(meta);
-    elements.eventList.append(button);
+    selectButton.append(meta);
+
+    const footer = document.createElement("footer");
+    footer.className = "event-card-footer";
+    addText(footer, "span", active ? "ATIVO" : "INATIVO", `event-state ${active ? "active" : "inactive"}`);
+    const statusButton = addText(footer, "button", active ? "Desativar" : "Reativar", "event-status-action");
+    statusButton.type = "button";
+    statusButton.setAttribute("aria-label", `${active ? "Desativar" : "Reativar"} evento ${event.name}`);
+    statusButton.addEventListener("click", () => setEventStatus(event, !active, statusButton));
+
+    card.append(selectButton, footer);
+    elements.eventList.append(card);
   });
+}
+
+function clearSelectedEvent() {
+  Object.assign(flow, { selectedEvent: null, reservation: null, registration: null, payment: null, notification: null });
+  elements.selectedEvent.className = "empty-state";
+  elements.selectedEvent.textContent = "Selecione um evento para continuar.";
+  elements.availability.hidden = true;
+  elements.ticketForm.hidden = true;
+  elements.ticketForm.reset();
+  elements.registrationForm.reset();
+  elements.paymentForm.reset();
+  elements.participantName.disabled = true;
+  elements.registrationForm.querySelector("button").disabled = true;
+  elements.paymentAmount.disabled = true;
+  elements.paymentForm.querySelector("button").disabled = true;
+  elements.checkNotification.disabled = true;
+  [elements.reservationResult, elements.registrationResult, elements.paymentResult].forEach(item => {
+    item.hidden = true;
+    item.replaceChildren();
+  });
+  elements.notificationResult.className = "empty-state";
+  elements.notificationResult.textContent = "A notificação será processada após a aprovação do pagamento.";
+  updateSteps();
+}
+
+async function setEventStatus(event, active, button) {
+  const journeyId = `event-status-${event.id}`;
+  const action = active ? "Reativando" : "Desativando";
+  startJourney(journeyId, `${action} evento`, `event-service · POST /events/${event.id}/status`, `${event.name} → ${active ? "ATIVO" : "INATIVO"}`, ["frontend", "cloudfront", "alb", "ecs", "rds"]);
+  setBusy(button, true, active ? "Reativando…" : "Desativando…");
+  try {
+    const updated = await post(`/events/${encodeURIComponent(event.id)}/status`, { active });
+    const index = flow.events.findIndex(item => item.id === updated.id);
+    if (index >= 0) flow.events[index] = updated;
+    if (!active && flow.selectedEvent?.id === updated.id) clearSelectedEvent();
+    finishJourney(journeyId, `Evento ${updated.id} agora está ${active ? "ativo" : "inativo"}.`);
+    renderEvents();
+    showTechnical(updated);
+    notify(active ? "Evento reativado e disponível para reservas." : "Evento desativado. Novas reservas foram bloqueadas.");
+  } catch (error) {
+    failJourney(journeyId, error);
+    notify(error.message, "error");
+  } finally {
+    setBusy(button, false);
+  }
 }
 
 async function loadEvents({ silent = false } = {}) {
@@ -292,6 +362,7 @@ async function loadEvents({ silent = false } = {}) {
 }
 
 async function selectEvent(event) {
+  if (event.active === false) return notify("Reative o evento antes de selecioná-lo.", "error");
   Object.assign(flow, { selectedEvent: event, reservation: null, registration: null, payment: null, notification: null });
   renderEvents();
   elements.selectedEvent.className = "selected-summary";
@@ -602,6 +673,10 @@ elements.paymentForm.addEventListener("submit", async event => {
 });
 
 document.querySelector("#reload-events").addEventListener("click", () => loadEvents());
+elements.toggleInactiveEvents.addEventListener("click", () => {
+  flow.showInactive = !flow.showInactive;
+  renderEvents();
+});
 document.querySelector("#clear-journey").addEventListener("click", () => {
   resetJourney();
   notify("Console da jornada limpo.");

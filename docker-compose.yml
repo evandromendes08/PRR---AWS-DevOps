@@ -17,7 +17,7 @@ services:
       context: .
       dockerfile: services/event-service/Dockerfile
     ports:
-      - "3001:3000"
+      - "${EVENT_PORT:-3001}:3000"
 
   ticket-service:
     <<: *app
@@ -25,7 +25,7 @@ services:
       context: .
       dockerfile: services/ticket-service/Dockerfile
     ports:
-      - "3002:3000"
+      - "${TICKET_PORT:-3002}:3000"
 
   registration-service:
     <<: *app
@@ -33,7 +33,7 @@ services:
       context: .
       dockerfile: services/registration-service/Dockerfile
     ports:
-      - "3003:3000"
+      - "${REGISTRATION_PORT:-3003}:3000"
 
   payment-service:
     <<: *app
@@ -41,7 +41,7 @@ services:
       context: .
       dockerfile: services/payment-service/Dockerfile
     ports:
-      - "3004:3000"
+      - "${PAYMENT_PORT:-3004}:3000"
 
   notification-service:
     <<: *app
@@ -49,7 +49,7 @@ services:
       context: .
       dockerfile: services/notification-service/Dockerfile
     ports:
-      - "3005:3000"
+      - "${NOTIFICATION_PORT:-3005}:3000"
 
   toolbox:
     build:
