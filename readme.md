@@ -1,4 +1,4 @@
-# PRR — AWS DevOps | Sistema de Gerenciamento de Eventos
+# PRR — AWS DevOps | Sistema de Gerenciamento de Eventos | EventFlow
 
 Projeto acadêmico de arquitetura cloud, microserviços, Infraestrutura como Código e CI/CD na AWS.
 
