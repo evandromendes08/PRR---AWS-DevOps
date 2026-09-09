@@ -469,18 +469,20 @@ elements.confirmationForm.addEventListener("submit", async event => {
 });
 
 document.querySelector("#resend-code").addEventListener("click", async event => {
+  const button = event.currentTarget;
   const username = document.querySelector("#confirmation-username").value.trim();
   if (!username) return notify("Informe o usuário para reenviar o código.", "error");
-  setBusy(event.currentTarget, true, "Reenviando…");
+  setBusy(button, true, "Reenviando…");
   try {
     await cognito("ResendConfirmationCode", { ClientId: config.cognitoClientId, Username: username });
     notify("Novo código enviado. Verifique também Spam e Promoções.");
   } catch (error) { notify(error.message, "error"); }
-  finally { setBusy(event.currentTarget, false); }
+  finally { setBusy(button, false); }
 });
 
 document.querySelector("#event-form").addEventListener("submit", async event => {
   event.preventDefault();
+  const form = event.currentTarget;
   const button = event.submitter;
   const journeyId = "event-create";
   startJourney(journeyId, "Criando evento", "event-service · POST /events", "Enviando dados pela rota síncrona.", ["frontend", "cloudfront", "alb", "ecs", "rds"]);
@@ -491,7 +493,7 @@ document.querySelector("#event-form").addEventListener("submit", async event => 
       city: document.querySelector("#event-city").value.trim(),
       available: Number(document.querySelector("#event-capacity").value)
     });
-    event.currentTarget.reset();
+    form.reset();
     document.querySelector("#event-capacity").value = 50;
     flow.events.push(created);
     await selectEvent(created);
@@ -605,14 +607,15 @@ document.querySelector("#clear-journey").addEventListener("click", () => {
   notify("Console da jornada limpo.");
 });
 document.querySelector("#refresh-all").addEventListener("click", async event => {
-  setBusy(event.currentTarget, true, "Atualizando…");
+  const button = event.currentTarget;
+  setBusy(button, true, "Atualizando…");
   try {
     await loadEvents({ silent: true });
     if (flow.selectedEvent) await loadAvailability();
     if (flow.registration) await loadBusinessStatus();
     notify("Dados atualizados.");
   } catch (error) { notify(error.message, "error"); }
-  finally { setBusy(event.currentTarget, false); }
+  finally { setBusy(button, false); }
 });
 
 elements.checkNotification.addEventListener("click", async () => {
